@@ -341,16 +341,18 @@ On first run, persist `cadence_hours` (default 168). Register a recurring job on
 Each invocation:
 
 ```text
-if intake incomplete → section 1
-process due `clock` rows (overdue first)
-check mailboxes for verify / OTP
-recheck listing URLs whose window elapsed
-if scan is due by cadence → search pack (section 6)
-file new matches (section 7)
-CA: if DROP status due → check DROP
+if roster empty / primary intake incomplete → section 1
+for each person WHERE active=1 AND consent_basis != 'unconfirmed':
+  process that person's due clocks (overdue first)
+  check that person's mailbox for verify / OTP
+  recheck that person's listing URLs whose window elapsed
+  if scan is due → ryd.py pack --person-id N → search pack (section 6)
+  file new matches onto that person_id (section 7)
+  CA: if that person's DROP status due → check DROP; set person.drop_filed
+skip unconfirmed family (visible on /roster only)
 export evidence if anything changed
 refresh dashboard (`ryd.py export` and/or keep `ryd.py serve` running)
-report: gone / pending / leftover / overdue legal clocks
+report per person: gone / pending / leftover / overdue
 ```
 
 Clock kinds:
