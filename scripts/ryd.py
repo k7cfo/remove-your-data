@@ -571,7 +571,16 @@ def scan_pack(idents: list[dict[str, Any]]) -> list[str]:
             "whitepages.com",
             "radaris.com",
             "truepeoplesearch.com",
+            "fastpeoplesearch.com",
             "beenverified.com",
+            "opendatausa.com",
+            "peoplefinders.com",
+            "nuwber.com",
+            "thatsthem.com",
+            "usphonebook.com",
+            "mylife.com",
+            "intelius.com",
+            "clustrmaps.com",
         ):
             add(f'"{name}" site:{site}')
     for phone in phones:

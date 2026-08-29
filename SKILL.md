@@ -237,41 +237,19 @@ If the form is Turnstile-blocked from this IP: one attempt, log `blocked`, lefto
 
 ### Finding listings
 
-Run the same query pack across **several** engines. One index is not enough; people-search mirrors diverge.
+Run the same query pack across **several** engines. Catalog and query pack: `references/search.md`. `ryd.py pack` prints roster-backed queries.
 
-Query pack (every identifier they authorized):
+Preference (use what exists, skip the rest):
 
-```text
-"Legal Name" "City"
-"Legal Name" "Street"
-"Legal Name" "Region"
-"Alias" "City"
-"Phone with dashes"
-"Phone digits only"
-"Name" site:spokeo.com
-"Name" site:whitepages.com
-"Name" site:radaris.com
-"Name" site:truepeoplesearch.com
-"Name" site:beenverified.com
-```
+1. Host-native search (OpenClaw/Hermes/OMP/Claude/Codex/Grok web_search).
+2. Keyless browser: DuckDuckGo, Brave, Bing, Startpage, Yahoo, Yandex, Mojeek, Qwant, SearXNG, Ecosia, then Google in an isolated profile.
+3. Already-configured APIs: Exa, Firecrawl, Brave Search API, Tavily, Parallel, Linkup, Perplexity, Serper/SerpAPI.
 
-Engine / API preference (use what exists, skip the rest):
+`anonymity_mode=max`: no third-party search API unless they said yes.
 
-| Kind | Tools | Use for |
-| --- | --- | --- |
-| Keyless / low-key | DuckDuckGo HTML, Brave Search UI, Startpage, Bing UI, Mojeek, Qwant, SearXNG (self-host or public instance), Google UI in the isolated browser | Default discovery. Browser-drive Google/Brave/DDG if no API. |
-| Agent search APIs | **Exa** (semantic: "people search profile for Name in City"), **Firecrawl** (search + scrape the listing page to markdown), Brave Search API, Tavily, Parallel, Linkup, Perplexity | Fast recall when the user already has a key or a free tier. |
-| SERP APIs | Serper, SerpAPI, SearchAPI, ScrapingDog | Google-like result pages. Optional. |
-| URL to text | Jina `r.jina.ai/{url}`, Firecrawl scrape | Evidence capture when the browser is overkill. |
-| Native host search | OpenClaw/Hermes web_search, OMP web_search, Claude/Codex web search | Use first if the host already searched the web for you. |
+When a URL matches this person (same phone, street, or city): insert `listing` **before** filing.
 
-Keyless path when there are **no** search keys: isolated browser → DuckDuckGo, Brave, Bing, Google (in that order if one is captcha-walled), plus site-search on the broker list in `references/brokers.md`.
-
-Also search the phone in reverse-lookup teasers. A paywall that hides the name is a leftover, not a free opt-out target, unless an official removal form still accepts the URL.
-
-When a URL matches this person (same phone, street, or city — not just the same name in another state): insert `listing` **before** filing.
-
-Load `references/search.md` when present.
+After opt-outs, leftovers that still **rank on Google** go to §7a (Results about you). That is hide-from-index, not delete-at-source.
 
 ## 7. File free opt-outs
 
@@ -305,6 +283,24 @@ Site notes that keep biting:
 - **TruePeopleSearch / FastPeopleSearch** — same operator family; file both. Datacenter 403 is common.
 
 If a site has no form: send `templates/erasure-request.md` to the privacy contact, start a legal clock, log the message-id.
+
+## 7a. Index failsafe (last)
+
+Broker opt-out first. If the public URL is still live **or** a 404 source still **ranks on Google**, hide the SERP snippet. This does not delete the source. Full steps: `references/search.md` (Index failsafe).
+
+Google — [Results about you](https://myactivity.google.com/results-about-you) / [how-to](https://support.google.com/websearch/answer/12719076):
+
+1. **SERP click** (what shows next to a listing): their Google account, search the leftover, **More ⋮ → About this result → Remove result → personal info / Contact info**. Match the name and address/phone **as shown**.
+2. **Results about you**: same account, enter roster name/aliases/phones/addresses, review hits, Request to remove. Optional notifications for new leaks.
+3. **Detailed form** if not signed in, filing for family, paywall, under 18, or the ⋮ path is missing: [content removal form](https://support.google.com/websearch/contact/content_removal_form).
+
+Do **not** use the agent's Google account for someone else's Results about you — Google may deny it. Hand them the session.
+
+Log `action=google_serp_remove`, `channel=google`, request ID. Clock: `site_window` / basis `Google Results about you`.
+
+Gov, school, and newspaper URLs often have no Remove option. Leave as leftover.
+
+After Google: Bing [content removal](https://www.bing.com/webmaster/tools/content-removal) (feeds Yahoo/Ecosia/DDG). Then Yandex if it still ranks there.
 
 ## 8. California DROP
 
@@ -359,6 +355,7 @@ for each person WHERE active=1 AND consent_basis != 'unconfirmed':
   recheck that person's listing URLs whose window elapsed
   if scan is due → ryd.py pack --person-id N → search pack (section 6)
   file new matches onto that person_id (section 7)
+  leftovers still in Google SERP → §7a Results about you / ⋮ Remove result
   CA: if that person's DROP status due → check DROP; set person.drop_filed
 skip unconfirmed family (visible on /roster only)
 export evidence if anything changed
@@ -382,8 +379,9 @@ A listing becomes `gone` only when the exact URL no longer shows the identifier.
 Escalation, unless they say otherwise:
 
 1. Official free path through the stated window
-2. Written erasure request (`templates/erasure-request.md`) with the leftovers file
-3. State AG / DPA complaint, or attorney, using `exports/evidence-log.csv`
+2. Google Results about you / SERP Remove result (§7a), then Bing if it still ranks
+3. Written erasure request (`templates/erasure-request.md`) with the leftovers file
+4. State AG / DPA complaint, or attorney, using `exports/evidence-log.csv`
 
 ## 10. Household vs same name
 
@@ -401,6 +399,7 @@ A pass is done when:
 - `ryd.py export` snapshot is current, or `ryd.py serve` is running on loopback (`/roster` is the editor).
 - Each CA resident on the roster: DROP submitted and logged on **that** person, or they refused in the log.
 - Every found public listing for consented people is gone, pending inside its window, blocked with a leftover, or leftover with a next step.
+- Leftovers that still rank on Google have a Results-about-you / SERP removal logged, or they refused that failsafe.
 - Evidence log is current.
 - Recurring job is registered, or they have the next due date.
 - No paid removal service was purchased.

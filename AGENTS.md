@@ -19,7 +19,7 @@ Use whatever this host already has. Do not install software they did not ask for
 | Need | Prefer |
 | --- | --- |
 | Browser / forms | Host browser MCP, Playwright, Puppeteer, Browser Use |
-| Search | Host web_search, then keyless DDG/Brave/SearXNG, then Exa/Firecrawl/Brave API if already configured |
+| Search | Host web_search first. Then keyless DDG/Brave/Bing/Startpage/Yandex/SearXNG/Google isolated. APIs only if already configured (Exa, Firecrawl, Brave, Tavily). Catalog: `references/search.md`. Google Results about you is last failsafe (§7a), not a broker opt-out. |
 | Mail / OTP | AgentMail, else a mailbox they control. Consumer Gmail/Yahoo/Outlook fallback for brokers that reject agent domains |
 | Log / roster / routine | `init` then `/roster` + `/settings`, or `add-person` / `add-ident` / `pack` / `settings` |
 
