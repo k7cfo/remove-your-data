@@ -678,11 +678,12 @@ table {{
 }}
 th, td {{
   text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line);
-  vertical-align: top; word-break: break-word;
+  vertical-align: top; overflow-wrap: anywhere;
 }}
 th {{ color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }}
 tr:last-child td {{ border-bottom: 0; }}
 td.empty {{ color: var(--muted); }}
+td a {{ overflow-wrap: anywhere; word-break: break-all; }}
 a {{ color: var(--accent); }}
 .pill {{
   display: inline-block; padding: .1rem .45rem; border-radius: 999px;
