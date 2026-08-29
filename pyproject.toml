@@ -8,4 +8,4 @@ license = { file = "LICENSE" }
 authors = [{ name = "remove-your-data contributors" }]
 
 [project.urls]
-Canonical = "https://github.com/REPLACE/remove-your-data"
+Canonical = "https://github.com/k7cfo/remove-your-data"
