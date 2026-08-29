@@ -1,5 +1,5 @@
 -- remove-your-data legal log
--- Source of truth for one person's takedown workspace. Never commit this DB.
+-- Source of truth for a household takedown workspace. Never commit this DB.
 
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS person (
   anonymity_mode TEXT NOT NULL DEFAULT 'dedicated'
     CHECK (anonymity_mode IN ('dedicated', 'personal', 'max')),
   household_scope INTEGER NOT NULL DEFAULT 0,
+  relationship TEXT NOT NULL DEFAULT 'self',
+  consent_basis TEXT NOT NULL DEFAULT 'self',
+  active INTEGER NOT NULL DEFAULT 1,
+  drop_filed INTEGER NOT NULL DEFAULT 0,
   intake_complete INTEGER NOT NULL DEFAULT 0,
   created_at_utc TEXT NOT NULL,
   notes TEXT
@@ -26,6 +30,7 @@ CREATE TABLE IF NOT EXISTS identifier (
   kind TEXT NOT NULL,
   value TEXT NOT NULL,
   normalized TEXT NOT NULL,
+  scan INTEGER NOT NULL DEFAULT 1,
   notes TEXT,
   UNIQUE (person_id, kind, normalized)
 );
@@ -121,6 +126,7 @@ CREATE TABLE IF NOT EXISTS leftover (
 CREATE INDEX IF NOT EXISTS idx_listing_status ON listing(person_id, status);
 CREATE INDEX IF NOT EXISTS idx_clock_due ON clock(status, due_at_utc);
 CREATE INDEX IF NOT EXISTS idx_action_when ON action_log(occurred_at_utc);
+CREATE INDEX IF NOT EXISTS idx_ident_person ON identifier(person_id, kind);
 
 CREATE VIEW IF NOT EXISTS v_evidence_chronology AS
 SELECT
@@ -134,7 +140,8 @@ SELECT
   a.channel,
   a.request_id,
   a.result,
-  a.evidence_path
+  a.evidence_path,
+  a.person_id
 FROM action_log a
 JOIN person p ON p.id = a.person_id
 LEFT JOIN broker b ON b.id = a.broker_id;
@@ -149,7 +156,8 @@ SELECT
   c.status,
   l.url AS listing_url,
   b.name AS broker,
-  c.notes
+  c.notes,
+  c.person_id
 FROM clock c
 JOIN person p ON p.id = c.person_id
 LEFT JOIN listing l ON l.id = c.listing_id

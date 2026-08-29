@@ -39,44 +39,66 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 
 ## Hard rules
 
-- Do not start searching or filing until first-run intake is complete, especially residency.
-- If they live in California, run CA DROP before grinding public forms.
-- Do not impersonate a spouse, child, or anyone else. Use the site's family / authorized-agent option only when it exists and they asked.
+- Do not start searching or filing until the **roster** has a primary person with residency.
+- If they live in California, run CA DROP before grinding public forms — **one DROP per person**, never a spouse on the same request.
+- Do not file for a roster person whose `consent_basis` is `unconfirmed`.
+- Do not impersonate. Consent is `self` (primary), `parent_of_minor`, or `authorized_agent` (they asked you to).
 - Do not opt out other-state / other-country people who share the same name.
 - Do not collect anyone's email or site password. If a verify link lands in a mailbox you must not open, they click it.
+- Do not reuse one email across two roster people (Open Data USA: one address per person; Gmail plus-aliases collapse).
 - Do not retry Cloudflare Turnstile / datacenter-blocked forms in a loop. Log `blocked`, move on.
-- Do not reuse one email on sites that enforce one address per person (Open Data USA does this and normalizes Gmail plus-aliases).
 - Do not promise a listing is gone because a confirm page said so. Recheck the public URL.
-- Do not store the person's PII in this skill repo, in git, or in chat logs you cannot control. Workspace is a separate directory.
-- Do not recommend paying Incogni / DeleteMe / Optery / similar. If a site demands payment to opt out, it is an upsell — use the official free form or a legal request.
+- Do not store PII in this git clone.
+- Do not recommend paying Incogni / DeleteMe / Optery / similar.
 - One clean filing plus verify per listing. Recheck later instead of spamming the form.
 
-## 1. First run — ask, then stop
+## 1. Roster — source of truth
 
-On the first invocation for a person, ask these in **one** questionnaire. Do not search until they answer at least name, residency, and contact path. Ask follow-ups only for blanks.
+Aliases, addresses, phones, and family members live in SQLite, **not** in chat memory. The dashboard editor is `/roster`. Agents can also write via CLI. Every later pass **reads the roster** and scans each consented person separately.
 
-Required:
+```bash
+python3 scripts/ryd.py init --workspace "$WORKSPACE"
+python3 scripts/ryd.py serve --workspace "$WORKSPACE"
+# http://127.0.0.1:8765/roster
+python3 scripts/ryd.py add-ident --workspace "$WORKSPACE" --person-id 1 --kind alias --value "Janie Public"
+python3 scripts/ryd.py add-person --workspace "$WORKSPACE" --name "Alex Public" --relationship child --consent parent_of_minor
+python3 scripts/ryd.py pack --workspace "$WORKSPACE"
+```
 
-1. Legal name, and every alias / maiden / nickname they want covered.
-2. **Where they live right now** — country, and if US / Canada / Australia the state or province. If they say California, DROP is first.
-3. Current city and postal / ZIP. Street address only if they want address-level matching (needed for DROP and most people-search opt-outs).
-4. Mobile number shown on listings, if any.
-5. A mailbox they can actually open for verify links and OTP codes (see Email).
-6. Cadence: how often should the agent re-scan? Default **every 7 days**. Offer 24h / 7d / 30d / 90d. Legal clocks can fire sooner than this.
-7. Scope: just them, or household members on the same street / same phone? Default: them only.
-8. Anonymity: `dedicated` (default), `personal`, or `max`. See Anonymity.
-9. What this agent can already use: browser (Playwright, Puppeteer, OMP/Chromium MCP, Browser Use, …), search APIs (Exa, Firecrawl, Brave, Tavily, …), email (AgentMail, Gmail IMAP, …). Detect tools yourself, then confirm.
+On first invocation, if the roster is empty, ask **one** questionnaire for the **primary** person, then stop. Prefer sending them to `/roster` to paste the long lists (many aliases, old addresses). Chat is fine for a short set.
 
-Optional — only if they want broader matching or a form requires it:
+Primary person, required:
 
-- Prior addresses and phones
-- Work email (professional / registry leftovers)
-- Date of birth (CA DROP and some portals; do not ask up front otherwise)
-- MAID / CTV ID / VIN (CA DROP optional identifiers)
+1. Legal name
+2. **Where they live** (country; US/Canada/Australia: state/province). California → DROP first.
+3. Current city / postal. Street if they want address matching.
+4. Phones that show on listings
+5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address.
+6. Cadence (default 7 days)
+7. Anonymity: `dedicated` / `personal` / `max`
+8. Tools this host already has
 
-Confirm they want **you** to file as their agent using the identifiers they provided, not as a pretend identity.
+Then aliases, prior addresses, extra phones. Optional: DOB / MAID / VIN only if DROP or a form needs them.
 
-Write answers into SQLite (`person`, `identifier`, `config`). Set `intake_complete=1`. Then route.
+Family: add as **another `person` row**, not extra identifiers on the primary. Set `relationship` and `consent_basis`:
+
+| consent_basis | Meaning | Scan? |
+| --- | --- | --- |
+| `self` | Primary subject | yes |
+| `parent_of_minor` | User is the parent; child is a minor | yes |
+| `authorized_agent` | That adult asked the user to file | yes |
+| `unconfirmed` | Listed but not authorized | **no** |
+
+Write `person` + `identifier` (`scan=1`). `intake_complete=1` on the primary. Confirm they are not asking you to impersonate.
+
+On every later run:
+
+1. `SELECT * FROM person WHERE active=1 AND consent_basis != 'unconfirmed'`
+2. For each: `ryd.py pack --person-id` (or `identifier` where `scan=1`) → search pack
+3. File listings onto **that** `person_id`. Own DROP. Own verify email. Own clocks.
+4. Shared street: still a separate filing if the card names that person. Site family-member option only when it exists.
+
+Cap: 12 people, 40 identifiers each. Pause an identifier with `scan=0` instead of deleting history.
 
 ## 2. Jurisdiction router
 
@@ -352,18 +374,20 @@ Escalation, unless they say otherwise:
 
 ## 10. Household vs same name
 
-- Same street or same phone, and they asked: file if the form is easy (family-member option, no extra identity theater).
+- Roster family with consent: file. One legal person per DROP and per one-email-per-person broker.
+- Same street / same phone on a card that names a consented roster person: file that person. Household option only if the site has it.
 - Same name, other region, no matching phone or street: leave it.
-- Professional / SoS / LinkedIn cards on a people-search site: file if the card reprints a **home** phone or **home** address. Skip generic company pages.
+- Professional / SoS / LinkedIn cards: file if the card reprints a **home** phone or **home** address. Skip generic company pages.
+- `unconfirmed` family members: show on `/roster`, do not search or file.
 
 ## 11. Done (one pass)
 
 A pass is done when:
 
-- Intake is in SQLite.
-- `ryd.py export` snapshot is current, or `ryd.py serve` is running on loopback.
-- CA residents: DROP submitted and DROP ID logged, or they refused DROP in writing in the log.
-- Every found public listing is gone, pending inside its window, blocked with a leftover, or leftover with a next step.
+- Roster has the primary person (and any consented family) with scan identifiers in SQLite.
+- `ryd.py export` snapshot is current, or `ryd.py serve` is running on loopback (`/roster` is the editor).
+- Each CA resident on the roster: DROP submitted and logged on **that** person, or they refused in the log.
+- Every found public listing for consented people is gone, pending inside its window, blocked with a leftover, or leftover with a next step.
 - Evidence log is current.
 - Recurring job is registered, or they have the next due date.
 - No paid removal service was purchased.

@@ -217,9 +217,66 @@ footer {
   margin-top: 36px; color: var(--faint);
   font: 11px/1.4 var(--mono);
 }
+.people {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 16px 0 8px;
+}
+.who {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px 12px; background: var(--bg-elev);
+}
+.who em { font-style: normal; color: var(--faint); font: 10px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.who.on { border-color: rgba(143, 206, 173, 0.45); }
+.who.skip { opacity: 0.55; }
+.who.add { color: var(--muted); }
+.idents { max-width: 36em; }
+.ident-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px; margin: 8px 0 18px;
+}
+.ident-group {
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px 14px;
+}
+.ident-group h3 {
+  margin: 0 0 8px;
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+}
+.ident-group ul { list-style: none; margin: 0; padding: 0; }
+.ident {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+  font: 12px/1.3 var(--mono);
+}
+.ident:last-child { border-bottom: 0; }
+.ident.off { opacity: 0.45; }
+.ident span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.inline { display: inline; margin: 0; }
+.ident button, .form-row button {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 8px; font: 600 10px/1 var(--mono);
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+}
+.ident button.danger { color: var(--bad); }
+.form-row {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: end;
+  margin: 0 0 22px;
+}
+.form-row label { display: flex; flex-direction: column; gap: 6px; color: var(--faint); font: 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.form-row .grow { flex: 1; min-width: 180px; }
+.form-row input, .form-row select {
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; font: 13px/1.3 var(--sans);
+}
 body.shot .below,
 body.shot footer,
-body.shot .top-meta a { display: none; }
+body.shot .top-meta a,
+body.shot .people { display: none; }
 @media (max-width: 900px) {
   .masthead { grid-template-columns: 1fr; }
   h1 { font-size: 34px; white-space: normal; }
