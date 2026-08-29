@@ -1,5 +1,7 @@
 # remove-your-data
 
+![Takedown dashboard](docs/dashboard.png)
+
 A skill for coding agents (Claude, Codex, Pi, OMP, Hermes, OpenClaw, and anything else that loads `SKILL.md`) that takes down people-search listings and data-broker records **without paying deletion services**.
 
 Free to use. Copyleft. One canonical repo.
@@ -73,7 +75,7 @@ python3 scripts/ryd.py export-csv --workspace "$HOME/privacy-takedown"
 python3 scripts/ryd.py serve --demo
 ```
 
-Loopback only. It will refuse `0.0.0.0`. The page is your listings, legal clocks, leftovers, mail, and evidence chronology. It refreshes every 30 seconds.
+Loopback only. It will refuse `0.0.0.0`. Listings, legal clocks, leftovers, mail, and evidence chronology. Refreshes every 30 seconds. `?hero=1` is a tighter frame for screenshots.
 
 ## Requirements on the machine
 

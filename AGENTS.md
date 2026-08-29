@@ -9,7 +9,8 @@ This repository is the **remove-your-data** skill plus a stdlib dashboard. Produ
 | `templates/erasure-request.md` | Letter when a site has no form |
 | `scripts/schema.sql` | SQLite legal log |
 | `scripts/ryd.py` | `init` / `serve` / `export` / `export-csv` |
-| `LICENSE` | AGPL-3.0-or-later |
+| `scripts/dashboard.css` | Dashboard stylesheet |
+| `docs/dashboard.png` | README hero (sample data) |
 | `CONTRIBUTING.md` | PRs to this repo only; DCO; no long-lived forks |
 
 Dashboard binds 127.0.0.1. Do not add a public host option.

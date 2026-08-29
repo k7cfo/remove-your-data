@@ -16,7 +16,7 @@ from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 SCHEMA = Path(__file__).resolve().parent / "schema.sql"
 STATUSES = (
@@ -90,7 +90,7 @@ def seed_demo(con: sqlite3.Connection) -> None:
         ) VALUES (?, 'US', 'CA', 'America/Los_Angeles', 168, 'dedicated', 0, 1, ?, ?)
         """,
         (
-            "Jane Q. Public (DEMO)",
+            "Jane Q. Public",
             started,
             "Synthetic demo row. Not a real person.",
         ),
@@ -319,6 +319,9 @@ def seed_demo(con: sqlite3.Connection) -> None:
     con.execute(
         "INSERT INTO config (key, value) VALUES ('drop_filed', '1')"
     )
+    con.execute(
+        "INSERT INTO config (key, value) VALUES ('sample', '1')"
+    )
     con.commit()
 
 
@@ -447,6 +450,16 @@ def load_report(con: sqlite3.Connection) -> dict[str, Any]:
         "drop_filed": bool(drop_filed and drop_filed["value"] not in ("0", "")),
         "next_due": utc_iso(next_due) if next_due else None,
         "unhandled_mail": sum(1 for row in emails if not row["handled"]),
+        "sample": bool(
+            (con.execute("SELECT value FROM config WHERE key = 'sample'").fetchone() or [None])[0]
+            not in (None, "0", "")
+        ),
+        "pending_public": counts["pending_verify"]
+        + counts["pending_drop"]
+        + counts["filed"]
+        + counts["found"]
+        + counts["leftover"]
+        + counts["blocked"],
     }
 
 
@@ -483,95 +496,141 @@ def table(headers: list[str], rows: list[list[str]]) -> str:
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
 
-def render_html(report: dict[str, Any], *, live: bool) -> str:
-    person = report["person"]
-    title = "Takedown report"
-    banner = ""
-    if person:
-        title = f"{person['legal_name']} — takedown report"
-        if "DEMO" in person["legal_name"]:
-            banner = (
-                '<div class="banner demo">Demo data. Not a real person. '
-                "Bind this dashboard to your workspace when you have one.</div>"
-            )
-    elif live:
-        banner = (
-            '<div class="banner warn">No person in this database yet. '
-            "Run intake, then refresh.</div>"
-        )
+def human_delta(iso: str | None, now: datetime) -> str:
+    dt = parse_utc(iso)
+    if not dt:
+        return "—"
+    secs = int((dt - now).total_seconds())
+    overdue = secs < 0
+    secs = abs(secs)
+    if secs < 90:
+        return "just now" if overdue else "now"
+    if secs < 3600:
+        label = f"{secs // 60}m"
+    elif secs < 86400:
+        label = f"{secs // 3600}h"
     else:
-        banner = '<div class="banner warn">Empty workspace.</div>'
+        label = f"{secs // 86400}d"
+    return f"{label} overdue" if overdue else f"in {label}"
 
+
+def status_bar(counts: dict[str, int], total: int) -> str:
+    if not total:
+        return '<div class="bar"></div>'
+    pending = (
+        counts["pending_verify"]
+        + counts["pending_drop"]
+        + counts["filed"]
+        + counts["found"]
+    )
+    parts = []
+    for key, n in (
+        ("gone", counts["gone"]),
+        ("pending", pending),
+        ("leftover", counts["leftover"]),
+        ("blocked", counts["blocked"]),
+    ):
+        if n:
+            parts.append(
+                f'<span class="seg {key}" style="width:{100.0 * n / total:.2f}%"></span>'
+            )
+    return '<div class="bar">' + "".join(parts) + "</div>"
+
+
+def listing_cards(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return '<p class="none">No listings yet.</p>'
+    bits = ['<div class="list">']
+    for row in rows:
+        status = row["status"]
+        broker = escape(row["broker"] or "Unknown")
+        url = row["url"] or ""
+        meta = " · ".join(
+            part for part in (row.get("pii_shown"), row.get("request_id")) if part
+        )
+        href = escape(url, quote=True)
+        bits.append(
+            f'<article class="item {escape(status)}">'
+            f'<span class="rail"></span><div class="item-body">'
+            f'<div class="item-head"><strong>{broker}</strong>{pill(status)}</div>'
+            f'<a class="item-url" href="{href}">{escape(url)}</a>'
+            f'<div class="item-meta">{escape(meta) if meta else " "}</div>'
+            f"</div></article>"
+        )
+    bits.append("</div>")
+    return "".join(bits)
+
+
+def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> str:
+    person = report["person"]
+    now = parse_utc(report["generated_at"]) or utcnow()
+    name = person["legal_name"] if person else "Takedown report"
+    title = f"{name} — takedown report"
     residency = "—"
-    meta = []
+    cadence = "—"
+    anonymity = "—"
     if person:
         residency = ", ".join(
             part
             for part in (person.get("residency_region"), person.get("residency_country"))
             if part
         )
-        meta = [
-            ("Residency", residency),
-            ("Anonymity", person.get("anonymity_mode")),
-            ("Cadence", cadence_label(person.get("cadence_hours"))),
-            ("Timezone", person.get("timezone")),
-            ("DROP", "filed" if report["drop_filed"] else "not filed"),
-            ("Next clock", report["next_due"] or "—"),
-        ]
-
+        if residency == "CA, US":
+            residency = "California"
+        cadence = cadence_label(person.get("cadence_hours"))
+        anonymity = person.get("anonymity_mode") or "—"
     counts = report["counts"]
-    cards = [
-        ("Listings", str(report["total"])),
-        ("Gone", str(counts["gone"])),
-        ("Pending", str(counts["pending_verify"] + counts["pending_drop"] + counts["filed"] + counts["found"])),
-        ("Leftover", str(counts["leftover"])),
-        ("Blocked", str(counts["blocked"])),
-        ("Overdue clocks", str(len(report["overdue"]))),
-        ("Open mail", str(report["unhandled_mail"])),
-    ]
-    card_html = "".join(
-        f'<div class="card"><div class="n">{escape(n)}</div>'
-        f'<div class="k">{escape(k)}</div></div>'
-        for k, n in cards
+    still = report.get("pending_public") or 0
+    next_clock = (report["overdue"] or report["open_clocks"] or [None])[0]
+    pulse_cls = "danger" if report["overdue"] else "ok"
+    if next_clock:
+        pulse_big = human_delta(next_clock["due_at_utc"], now)
+        pulse_note = " · ".join(
+            part
+            for part in (
+                next_clock.get("broker"),
+                next_clock.get("kind", "").replace("_", " "),
+                next_clock.get("notes"),
+            )
+            if part
+        )
+    else:
+        pulse_big = "No clocks"
+        pulse_note = "File a listing to start the legal timer."
+    sample_chip = (
+        '<span class="chip sample">sample</span>'
+        if report.get("sample") and not hero
+        else ""
     )
-    meta_html = "".join(
-        f"<div><dt>{escape(k)}</dt><dd>{escape(str(v or '—'))}</dd></div>"
-        for k, v in meta
+    drop_tag = (
+        '<span class="tag drop">DROP filed</span>'
+        if report["drop_filed"]
+        else '<span class="tag">DROP not filed</span>'
     )
-
-    overdue_rows = [
-        [
-            cell(c["due_at_utc"]),
-            cell(c["kind"]),
-            cell(c["broker"]),
-            cell(c["legal_basis"]),
-            cell(c["listing_url"], url=True),
-            cell(c["notes"]),
-        ]
-        for c in report["overdue"]
-    ]
+    empty_tag = ""
+    if not person:
+        empty_tag = '<span class="tag">awaiting intake</span>'
+    callout = ""
+    if report["overdue"]:
+        first = report["overdue"][0]
+        callout = (
+            '<div class="callout"><strong>'
+            f'{len(report["overdue"])} overdue clock'
+            f'{"s" if len(report["overdue"]) != 1 else ""}</strong>'
+            f'<span>{escape(first.get("broker") or "")} · '
+            f'{escape((first.get("kind") or "").replace("_", " "))} · '
+            f'{escape(first.get("notes") or human_delta(first["due_at_utc"], now))}'
+            "</span></div>"
+        )
     clock_rows = [
         [
-            cell(c["due_at_utc"]),
+            cell(human_delta(c["due_at_utc"], now)),
             f"<td>{pill('overdue' if c['overdue'] else c['status'])}</td>",
             cell(c["kind"]),
             cell(c["broker"]),
-            cell(c["legal_basis"]),
-            cell(c["listing_url"], url=True),
             cell(c["notes"]),
         ]
         for c in report["open_clocks"]
-    ]
-    listing_rows = [
-        [
-            cell(row["broker"]),
-            f"<td>{pill(row['status'])}</td>",
-            cell(row["url"], url=True),
-            cell(row["pii_shown"]),
-            cell(row["request_id"]),
-            cell(row["updated_at_utc"]),
-        ]
-        for row in report["listings"]
     ]
     leftover_rows = [
         [
@@ -579,7 +638,6 @@ def render_html(report: dict[str, Any], *, live: bool) -> str:
             cell(row["url"], url=True),
             cell(row["why"]),
             cell(row["next_step"]),
-            cell(row["updated_at_utc"]),
         ]
         for row in report["leftovers"]
     ]
@@ -589,7 +647,6 @@ def render_html(report: dict[str, Any], *, live: bool) -> str:
             f"<td>{pill('open' if not row['handled'] else 'done')}</td>",
             cell(row["from_domain"]),
             cell(row["subject"]),
-            cell(row["mailbox"]),
             cell(row["listing_url"], url=True),
         ]
         for row in report["emails"]
@@ -600,27 +657,25 @@ def render_html(report: dict[str, Any], *, live: bool) -> str:
             cell(row["actor"]),
             cell(row["broker"]),
             cell(row["action"]),
-            cell(row["channel"]),
-            cell(row["request_id"]),
             cell(row["result"]),
             cell(row["listing_url"], url=True),
         ]
         for row in report["log"]
     ]
-
     refresh = (
         '<meta http-equiv="refresh" content="30">'
-        if live
+        if live and not hero
         else ""
     )
-    live_note = (
-        '<p class="muted">Localhost only. Refreshes every 30s. '
-        '<a href="/export.csv">CSV chronology</a> · '
-        '<a href="/report.html">Snapshot HTML</a></p>'
+    links = (
+        '<a href="/export.csv">CSV</a> · <a href="/report.html">snapshot</a>'
         if live
-        else '<p class="muted">Static snapshot. Not served live.</p>'
+        else "<span>snapshot</span>"
     )
-
+    css = (Path(__file__).resolve().parent / "dashboard.css").read_text(
+        encoding="utf-8"
+    )
+    body_cls = "shot" if hero else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -628,100 +683,58 @@ def render_html(report: dict[str, Any], *, live: bool) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {refresh}
 <title>{escape(title)}</title>
-<style>
-:root {{
-  --bg: #0e1116;
-  --fg: #e6edf3;
-  --muted: #8b949e;
-  --card: #161b22;
-  --line: #30363d;
-  --accent: #58a6ff;
-  --gone: #3fb950;
-  --warn: #d29922;
-  --bad: #f85149;
-  --pending: #a371f7;
-}}
-* {{ box-sizing: border-box; }}
-body {{
-  margin: 0; background: var(--bg); color: var(--fg);
-  font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
-}}
-header, main {{ max-width: 1200px; margin: 0 auto; padding: 1.25rem 1.5rem; }}
-h1 {{ font-size: 1.35rem; font-weight: 650; margin: 0 0 .35rem; }}
-h2 {{ font-size: 1rem; margin: 1.75rem 0 .6rem; font-weight: 650; }}
-.muted {{ color: var(--muted); }}
-.banner {{
-  padding: .7rem 1rem; border-radius: 8px; margin: .8rem 0 1rem;
-  border: 1px solid var(--line); background: var(--card);
-}}
-.banner.demo {{ border-color: var(--warn); }}
-.banner.warn {{ border-color: var(--bad); }}
-.dl {{
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: .6rem 1rem; margin: 1rem 0;
-}}
-.dl dt {{ color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }}
-.dl dd {{ margin: 0; font-weight: 600; }}
-.cards {{
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: .6rem; margin: 1rem 0 1.4rem;
-}}
-.card {{
-  background: var(--card); border: 1px solid var(--line);
-  border-radius: 10px; padding: .75rem .8rem;
-}}
-.card .n {{ font-size: 1.45rem; font-weight: 700; }}
-.card .k {{ color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }}
-table {{
-  width: 100%; border-collapse: collapse; background: var(--card);
-  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-}}
-th, td {{
-  text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line);
-  vertical-align: top;
-}}
-td:first-child {{ white-space: nowrap; }}
-th {{ color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }}
-tr:last-child td {{ border-bottom: 0; }}
-td.empty {{ color: var(--muted); }}
-td a {{ overflow-wrap: anywhere; word-break: break-all; }}
-a {{ color: var(--accent); }}
-.pill {{
-  display: inline-block; padding: .1rem .45rem; border-radius: 999px;
-  font-size: .72rem; font-weight: 650; text-transform: uppercase;
-  letter-spacing: .03em; background: #21262d;
-}}
-.pill.gone, .pill.done {{ color: var(--gone); }}
-.pill.overdue, .pill.blocked, .pill.leftover {{ color: var(--bad); }}
-.pill.pending_verify, .pill.pending_drop, .pill.filed, .pill.found {{ color: var(--pending); }}
-.pill.open {{ color: var(--warn); }}
-footer {{ color: var(--muted); font-size: .8rem; margin-top: 2rem; }}
-</style>
+<style>{css}</style>
 </head>
-<body>
-<header>
-  <h1>{escape(person["legal_name"] if person else "Takedown report")}</h1>
-  <p class="muted">Generated {escape(report["generated_at"])} UTC · local legal log · not legal advice</p>
-  {banner}
-  <div class="dl">{meta_html}</div>
-  <div class="cards">{card_html}</div>
-  {live_note}
-</header>
-<main>
-  <h2>Overdue clocks</h2>
-  {table(["Due UTC", "Kind", "Broker", "Basis", "Listing", "Notes"], overdue_rows)}
-  <h2>Open clocks</h2>
-  {table(["Due UTC", "Status", "Kind", "Broker", "Basis", "Listing", "Notes"], clock_rows)}
+<body class="{body_cls}">
+<div class="shell">
+  <nav class="top">
+    <div class="brand"><span class="mark"></span>remove-your-data</div>
+    <div class="top-meta">
+      {sample_chip}
+      <span class="chip">127.0.0.1</span>
+      <span>{escape(report["generated_at"])}</span>
+      {links}
+    </div>
+  </nav>
+  <section class="masthead">
+    <div>
+      <p class="eyebrow">Subject</p>
+      <h1>{escape(name)}</h1>
+      <p class="sub">{escape(residency)} · {escape(anonymity)} · {escape(cadence)}</p>
+      <div class="tags">{drop_tag}{empty_tag}</div>
+    </div>
+    <div class="panel">
+      <p class="eyebrow">Indexed listings</p>
+      <p class="big"><b>{counts["gone"]}</b><span> gone</span> &nbsp;<b>{still}</b><span> still public</span></p>
+      {status_bar(counts, report["total"])}
+      <div class="legend">
+        <span><i class="gone"></i>gone {counts["gone"]}</span>
+        <span><i class="pending"></i>pending {counts["pending_verify"] + counts["pending_drop"] + counts["filed"] + counts["found"]}</span>
+        <span><i class="leftover"></i>leftover {counts["leftover"]}</span>
+        <span><i class="blocked"></i>blocked {counts["blocked"]}</span>
+      </div>
+    </div>
+    <div class="panel {pulse_cls}">
+      <p class="eyebrow">Next legal clock</p>
+      <p class="big">{escape(pulse_big)}</p>
+      <p class="pulse-note">{escape(pulse_note)}</p>
+    </div>
+  </section>
+  {callout}
   <h2>Listings</h2>
-  {table(["Broker", "Status", "URL", "PII shown", "Request ID", "Updated UTC"], listing_rows)}
-  <h2>Leftovers</h2>
-  {table(["Broker", "URL", "Why", "Next step", "Updated UTC"], leftover_rows)}
-  <h2>Mail</h2>
-  {table(["Received UTC", "Status", "From", "Subject", "Mailbox", "Listing"], mail_rows)}
-  <h2>Evidence chronology</h2>
-  {table(["UTC", "Actor", "Broker", "Action", "Channel", "Request ID", "Result", "URL"], log_rows)}
-  <footer>remove-your-data · AGPL-3.0-or-later · do not bind this to a public interface</footer>
-</main>
+  {listing_cards(report["listings"])}
+  <div class="below">
+    <h2>Open clocks</h2>
+    {table(["Due", "Status", "Kind", "Broker", "Notes"], clock_rows)}
+    <h2>Leftovers</h2>
+    {table(["Broker", "URL", "Why", "Next step"], leftover_rows)}
+    <h2>Mail</h2>
+    {table(["Received UTC", "Status", "From", "Subject", "Listing"], mail_rows)}
+    <h2>Evidence chronology</h2>
+    {table(["UTC", "Actor", "Broker", "Action", "Result", "URL"], log_rows)}
+  </div>
+  <footer>AGPL-3.0-or-later · local legal log · not legal advice · do not bind this to a public interface</footer>
+</div>
 </body>
 </html>
 """
@@ -773,17 +786,19 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
+        hero = parse_qs(parsed.query).get("hero", ["0"])[0] in ("1", "true", "yes")
         try:
             report = report_from_db(self.db_path)
         except FileNotFoundError:
             self._send(404, b"database not found\n", "text/plain; charset=utf-8")
             return
         if path in ("/", "/index.html"):
-            html = render_html(report, live=True)
+            html = render_html(report, live=True, hero=hero)
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/report.html":
-            html = render_html(report, live=False)
+            html = render_html(report, live=False, hero=hero)
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/export.csv":
             self._send(
