@@ -19,8 +19,9 @@ Workspace (`takedown.db`, evidence) goes **outside** this clone.
 ```bash
 python3 scripts/ryd.py init --workspace "$HOME/privacy-takedown"
 python3 scripts/ryd.py serve --workspace "$HOME/privacy-takedown"
-# report  http://127.0.0.1:8765/
-# roster  http://127.0.0.1:8765/roster
+# report    http://127.0.0.1:8765/
+# roster    http://127.0.0.1:8765/roster
+# settings  http://127.0.0.1:8765/settings
 ```
 
 ## If you are a human

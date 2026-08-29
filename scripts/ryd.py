@@ -45,6 +45,29 @@ IDENT_KINDS = (
 )
 MAX_PEOPLE = 12
 MAX_IDENTS = 40
+SETTINGS_DEFAULTS = {
+    "cadence_hours": "168",
+    "anonymity_mode": "dedicated",
+    "timezone": "UTC",
+    "refresh_seconds": "30",
+    "paused": "0",
+}
+GEAR_LINK = (
+    '<a class="gear" href="/settings" title="Settings" aria-label="Settings">'
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" '
+    'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" '
+    'stroke-linejoin="round" aria-hidden="true">'
+    '<circle cx="12" cy="12" r="3"/>'
+    '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06'
+    'a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 '
+    '1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06'
+    'A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 '
+    '0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 '
+    '1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 '
+    '1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 '
+    '0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+    "</svg></a>"
+)
 
 
 def utcnow() -> datetime:
@@ -118,6 +141,75 @@ def migrate(con: sqlite3.Connection) -> None:
             "WHERE COALESCE(relationship, 'self') = 'self' AND drop_filed = 0"
         )
     con.commit()
+
+def get_settings(con: sqlite3.Connection) -> dict[str, str]:
+    rows = {
+        r["key"]: r["value"]
+        for r in con.execute("SELECT key, value FROM config")
+    }
+    out = dict(SETTINGS_DEFAULTS)
+    for key in SETTINGS_DEFAULTS:
+        if key in rows and rows[key] not in (None, ""):
+            out[key] = str(rows[key])
+    return out
+
+
+def parse_cadence(raw: str) -> int:
+    text = (raw or "").strip().lower()
+    aliases = {
+        "daily": 24,
+        "1d": 24,
+        "weekly": 168,
+        "7d": 168,
+        "monthly": 720,
+        "30d": 720,
+        "90d": 2160,
+        "quarterly": 2160,
+    }
+    if text in aliases:
+        return aliases[text]
+    if text.endswith("d") and text[:-1].isdigit():
+        return int(text[:-1]) * 24
+    if text.endswith("h") and text[:-1].isdigit():
+        return int(text[:-1])
+    if text.isdigit():
+        hours = int(text)
+        if 1 <= hours <= 24 * 365:
+            return hours
+    raise ValueError("Cadence must be like 7d, 24h, or an hour count.")
+
+
+def apply_settings(con: sqlite3.Connection, fields: dict[str, str]) -> None:
+    cadence = parse_cadence(fields.get("cadence_hours") or fields.get("cadence") or "168")
+    anonymity = fields.get("anonymity_mode") or "dedicated"
+    if anonymity not in ("dedicated", "personal", "max"):
+        raise ValueError("Anonymity must be dedicated, personal, or max.")
+    timezone_name = (fields.get("timezone") or "UTC").strip() or "UTC"
+    if len(timezone_name) > 64:
+        raise ValueError("Timezone too long.")
+    refresh = int(fields.get("refresh_seconds") or "30")
+    if refresh not in (0, 15, 30, 60, 120):
+        raise ValueError("Refresh must be 0, 15, 30, 60, or 120 seconds.")
+    paused = "1" if fields.get("paused") in ("1", "true", "on", "yes") else "0"
+    values = {
+        "cadence_hours": str(cadence),
+        "anonymity_mode": anonymity,
+        "timezone": timezone_name,
+        "refresh_seconds": str(refresh),
+        "paused": paused,
+    }
+    for key, value in values.items():
+        con.execute(
+            "INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)",
+            (key, value),
+        )
+    if fields.get("apply_people") in ("1", "true", "on", "yes"):
+        con.execute(
+            """
+            UPDATE person SET cadence_hours = ?, anonymity_mode = ?, timezone = ?
+            """,
+            (cadence, anonymity, timezone_name),
+        )
 
 
 def init_workspace(workspace: Path) -> Path:
@@ -534,10 +626,10 @@ def load_report(
             open_clocks.append(clock)
             if clock["overdue"] or clock["status"] == "overdue":
                 overdue.append(clock)
-    listings = []
-    leftovers = []
-    emails = []
-    log = []
+    listings: list[dict[str, Any]] = []
+    leftovers: list[dict[str, Any]] = []
+    emails: list[dict[str, Any]] = []
+    log: list[dict[str, Any]] = []
     if pid:
         listings = [
             dict(row)
@@ -622,12 +714,14 @@ def load_report(
         if due and (next_due is None or due < next_due):
             next_due = due
     idents = list_idents(con, pid) if pid else []
+    settings = get_settings(con)
     return {
         "generated_at": utc_iso(now),
         "person": person,
         "people": people,
         "identifiers": idents,
         "pack": scan_pack(idents),
+        "settings": settings,
         "counts": counts,
         "total": total,
         "open_clocks": open_clocks,
@@ -819,6 +913,32 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
     else:
         pulse_big = "No clocks"
         pulse_note = "File a listing to start the legal timer."
+    settings = report.get("settings") or dict(SETTINGS_DEFAULTS)
+    refresh_s = int(settings.get("refresh_seconds") or "30")
+    refresh = (
+        f'<meta http-equiv="refresh" content="{refresh_s}">'
+        if live and not hero and refresh_s > 0
+        else ""
+    )
+    links = (
+        f'<a href="/roster">roster</a> · <a href="/export.csv">CSV</a> · '
+        f'<a href="/report.html">snapshot</a> {GEAR_LINK}'
+        if live
+        else "<span>snapshot</span>"
+    )
+    who = "" if hero else people_nav(
+        report.get("people") or [],
+        person["id"] if person else None,
+        "report",
+    )
+    scans = ident_line(report.get("identifiers") or [])
+    paused = settings.get("paused") in ("1", "true", "yes")
+    pause_banner = (
+        '<div class="callout"><strong>Routine paused.</strong>'
+        "<span>The agent should not search or file until you unpause in Settings.</span></div>"
+        if paused and not hero
+        else ""
+    )
     sample_chip = (
         '<span class="chip sample">sample</span>'
         if report.get("sample") and not hero
@@ -884,22 +1004,6 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
         ]
         for row in report["log"]
     ]
-    refresh = (
-        '<meta http-equiv="refresh" content="30">'
-        if live and not hero
-        else ""
-    )
-    links = (
-        '<a href="/roster">roster</a> · <a href="/export.csv">CSV</a> · <a href="/report.html">snapshot</a>'
-        if live
-        else "<span>snapshot</span>"
-    )
-    who = "" if hero else people_nav(
-        report.get("people") or [],
-        person["id"] if person else None,
-        "report",
-    )
-    scans = ident_line(report.get("identifiers") or [])
     css = (Path(__file__).resolve().parent / "dashboard.css").read_text(
         encoding="utf-8"
     )
@@ -925,6 +1029,7 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
     </div>
   </nav>
   {who}
+  {pause_banner}
   <section class="masthead">
     <div>
       <p class="eyebrow">Subject</p>
@@ -1182,6 +1287,7 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
     <div class="brand"><span class="mark"></span>remove-your-data</div>
     <div class="top-meta">
       <a href="/">report</a>
+      {GEAR_LINK}
       <span class="chip">127.0.0.1</span>
     </div>
   </nav>
@@ -1226,6 +1332,187 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
 </body>
 </html>
 """
+
+
+def render_settings(report: dict[str, Any], flash: str = "") -> str:
+    settings = report.get("settings") or dict(SETTINGS_DEFAULTS)
+    css = (Path(__file__).resolve().parent / "dashboard.css").read_text(
+        encoding="utf-8"
+    )
+    hours = settings.get("cadence_hours", "168")
+    cadence_opts = []
+    for value, label in (
+        ("24", "daily"),
+        ("168", "weekly"),
+        ("720", "every 30 days"),
+        ("2160", "every 90 days"),
+    ):
+        sel = " selected" if hours == value else ""
+        cadence_opts.append(f'<option value="{value}"{sel}>{label}</option>')
+    if hours not in ("24", "168", "720", "2160"):
+        cadence_opts.append(
+            f'<option value="{escape(hours)}" selected>every {escape(hours)}h</option>'
+        )
+    anon = settings.get("anonymity_mode", "dedicated")
+    anon_opts = "".join(
+        f'<option value="{a}"{" selected" if anon == a else ""}>{a}</option>'
+        for a in ("dedicated", "personal", "max")
+    )
+    refresh = settings.get("refresh_seconds", "30")
+    refresh_opts = "".join(
+        f'<option value="{v}"{" selected" if refresh == v else ""}>{lab}</option>'
+        for v, lab in (
+            ("0", "off"),
+            ("15", "15s"),
+            ("30", "30s"),
+            ("60", "60s"),
+            ("120", "2 min"),
+        )
+    )
+    paused = settings.get("paused") in ("1", "true", "yes")
+    flash_html = (
+        f'<p class="callout"><strong>{escape(flash)}</strong></p>' if flash else ""
+    )
+    tz = escape(settings.get("timezone") or "UTC")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — remove-your-data</title>
+<style>{css}</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="top">
+    <div class="brand"><span class="mark"></span>remove-your-data</div>
+    <div class="top-meta">
+      <a href="/">report</a>
+      <a href="/roster">roster</a>
+      {GEAR_LINK}
+      <span class="chip">127.0.0.1</span>
+    </div>
+  </nav>
+  <p class="eyebrow">Household</p>
+  <h1>Settings</h1>
+  <p class="sub">Routine for the agent loop. Same knobs: <span class="mono">ryd.py settings</span>. Do not scrape this page.</p>
+  {flash_html}
+  <form method="post" action="/settings" class="settings">
+    <div class="panel">
+      <p class="eyebrow">Scan routine</p>
+      <div class="form-row">
+        <label>Cadence
+          <select name="cadence_hours">{"".join(cadence_opts)}</select>
+        </label>
+        <label>Pause scans
+          <select name="paused">
+            <option value="0"{" selected" if not paused else ""}>running</option>
+            <option value="1"{" selected" if paused else ""}>paused</option>
+          </select>
+        </label>
+      </div>
+      <p class="muted">Weekly is the default. Legal clocks (DROP 45d, GDPR 30d) still fire sooner.</p>
+    </div>
+    <div class="panel">
+      <p class="eyebrow">Defaults</p>
+      <div class="form-row">
+        <label>Anonymity
+          <select name="anonymity_mode">{anon_opts}</select>
+        </label>
+        <label class="grow">Timezone
+          <input name="timezone" value="{tz}" list="tzs" maxlength="64">
+        </label>
+      </div>
+      <datalist id="tzs">
+        <option value="UTC">
+        <option value="America/Los_Angeles">
+        <option value="America/Denver">
+        <option value="America/Chicago">
+        <option value="America/New_York">
+        <option value="Europe/London">
+        <option value="Europe/Paris">
+        <option value="Australia/Sydney">
+      </datalist>
+    </div>
+    <div class="panel">
+      <p class="eyebrow">Dashboard</p>
+      <div class="form-row">
+        <label>Auto-refresh
+          <select name="refresh_seconds">{refresh_opts}</select>
+        </label>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="check">
+        <input type="checkbox" name="apply_people" value="1" checked>
+        Apply cadence, anonymity, and timezone to everyone on the roster
+      </label>
+      <button type="submit">Save settings</button>
+    </div>
+  </form>
+  <footer>Agents: ryd.py settings --show / --cadence 7d --paused 0</footer>
+</div>
+</body>
+</html>
+"""
+
+
+def cmd_pack(args: argparse.Namespace) -> int:
+    db = args.workspace / "takedown.db"
+    with connect(db, readonly=True) as con:
+        settings = get_settings(con)
+        if settings.get("paused") in ("1", "true", "yes"):
+            print("# paused=1 — unpause with: ryd.py settings --paused 0", file=sys.stderr)
+            return 0
+        people = list_people(con)
+        targets = people
+        if args.person_id:
+            targets = [p for p in people if p["id"] == args.person_id]
+        for person in targets:
+            if not person.get("active", 1):
+                continue
+            if person.get("consent_basis") == "unconfirmed":
+                print(f"# skip {person['legal_name']} (unconfirmed consent)", file=sys.stderr)
+                continue
+            print(f"# {person['id']} {person['legal_name']} ({person.get('relationship')})")
+            for q in scan_pack(list_idents(con, person["id"])):
+                print(q)
+    return 0
+
+
+def cmd_settings(args: argparse.Namespace) -> int:
+    db = args.workspace / "takedown.db"
+    with connect(db, readonly=False) as con:
+        current = get_settings(con)
+        changing = any(
+            getattr(args, k) is not None
+            for k in ("cadence", "anonymity", "timezone", "refresh", "paused")
+        )
+        if args.show or not changing:
+            for key in SETTINGS_DEFAULTS:
+                print(f"{key}={current[key]}")
+            if args.show or not changing:
+                return 0
+        fields = {
+            "cadence_hours": args.cadence if args.cadence is not None else current["cadence_hours"],
+            "anonymity_mode": args.anonymity if args.anonymity is not None else current["anonymity_mode"],
+            "timezone": args.timezone if args.timezone is not None else current["timezone"],
+            "refresh_seconds": str(args.refresh) if args.refresh is not None else current["refresh_seconds"],
+            "paused": args.paused if args.paused is not None else current["paused"],
+        }
+        if args.apply_people:
+            fields["apply_people"] = "1"
+        try:
+            apply_settings(con, fields)
+            con.commit()
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        settings = get_settings(con)
+        for key in SETTINGS_DEFAULTS:
+            print(f"{key}={settings[key]}")
+    return 0
+
 
 
 def report_from_db(db: Path, person_id: int | None = None) -> dict[str, Any]:
@@ -1297,6 +1584,10 @@ class Handler(BaseHTTPRequestHandler):
             flash = (qs.get("err") or qs.get("ok") or [""])[0]
             html = render_roster(report, flash=flash)
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+        elif path == "/settings":
+            flash = (qs.get("err") or qs.get("ok") or [""])[0]
+            html = render_settings(report, flash=flash)
+            self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/export.csv":
             self._send(
                 200,
@@ -1313,13 +1604,25 @@ class Handler(BaseHTTPRequestHandler):
             self._send(403, b"loopback only\n", "text/plain; charset=utf-8")
             return
         parsed = urlparse(self.path)
-        if parsed.path != "/roster":
-            self._send(404, b"not found\n", "text/plain; charset=utf-8")
-            return
+        path = parsed.path
         try:
             fields = read_post(self)
         except ValueError as exc:
-            self._redirect("/roster?err=" + quote(str(exc)))
+            dest = "/settings" if path == "/settings" else "/roster"
+            self._redirect(dest + "?err=" + quote(str(exc)))
+            return
+        if path == "/settings":
+            try:
+                with connect(self.db_path, readonly=False) as con:
+                    apply_settings(con, fields)
+                    con.commit()
+            except (ValueError, sqlite3.Error) as exc:
+                self._redirect("/settings?err=" + quote(str(exc)))
+                return
+            self._redirect("/settings?ok=" + quote("Saved."))
+            return
+        if path != "/roster":
+            self._send(404, b"not found\n", "text/plain; charset=utf-8")
             return
         try:
             with connect(self.db_path, readonly=False) as con:
@@ -1426,24 +1729,6 @@ def cmd_add_ident(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_pack(args: argparse.Namespace) -> int:
-    db = args.workspace / "takedown.db"
-    with connect(db, readonly=True) as con:
-        people = list_people(con)
-        targets = people
-        if args.person_id:
-            targets = [p for p in people if p["id"] == args.person_id]
-        for person in targets:
-            if not person.get("active", 1):
-                continue
-            if person.get("consent_basis") == "unconfirmed":
-                print(f"# skip {person['legal_name']} (unconfirmed consent)", file=sys.stderr)
-                continue
-            print(f"# {person['id']} {person['legal_name']} ({person.get('relationship')})")
-            for q in scan_pack(list_idents(con, person["id"])):
-                print(q)
-    return 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -1491,6 +1776,17 @@ def build_parser() -> argparse.ArgumentParser:
     pk.add_argument("--workspace", type=Path, required=True)
     pk.add_argument("--person-id", type=int)
     pk.set_defaults(func=cmd_pack)
+
+    st = sub.add_parser("settings", help="show or change household scan routine")
+    st.add_argument("--workspace", type=Path, required=True)
+    st.add_argument("--show", action="store_true")
+    st.add_argument("--cadence")
+    st.add_argument("--anonymity", choices=("dedicated", "personal", "max"))
+    st.add_argument("--timezone")
+    st.add_argument("--refresh", type=int, choices=(0, 15, 30, 60, 120))
+    st.add_argument("--paused", choices=("0", "1"))
+    st.add_argument("--apply-people", action="store_true")
+    st.set_defaults(func=cmd_settings)
     return p
 
 

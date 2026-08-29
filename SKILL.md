@@ -331,7 +331,16 @@ DROP is ongoing, not one-shot. Keep a `clock` for 45-day recheck and 90-day stat
 
 This is not a one-sitting job. Listings reappear. Laws give brokers weeks.
 
-On first run, persist `cadence_hours` (default 168). Register a recurring job on **whatever this host already has** — do not invent a daemon:
+Household routine lives in `config` (dashboard gear → `/settings`, or CLI). Read it every pass:
+
+```bash
+python3 scripts/ryd.py settings --workspace "$WORKSPACE" --show
+python3 scripts/ryd.py settings --workspace "$WORKSPACE" --cadence 7d --paused 0 --apply-people
+```
+
+If `paused=1`, do not search or file. Still process due legal clocks if the user asked. Unpause from Settings or `--paused 0`.
+
+Cadence default 168h (weekly). Register a recurring job on **whatever this host already has** — do not invent a daemon:
 
 - OpenClaw / Hermes / similar: cron or heartbeat that re-invokes this skill
 - systemd user timer, launchd, Task Scheduler
@@ -342,6 +351,8 @@ Each invocation:
 
 ```text
 if roster empty / primary intake incomplete → section 1
+read settings (paused, cadence_hours)
+if paused → report paused, stop search/file
 for each person WHERE active=1 AND consent_basis != 'unconfirmed':
   process that person's due clocks (overdue first)
   check that person's mailbox for verify / OTP
