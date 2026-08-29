@@ -1,0 +1,20 @@
+# Never commit a takedown workspace
+privacy-takedown/
+takedown.db
+takedown.db-wal
+takedown.db-shm
+evidence/
+exports/
+*.csv
+!templates/**
+
+.env
+.env.*
+*.eml
+
+.DS_Store
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/

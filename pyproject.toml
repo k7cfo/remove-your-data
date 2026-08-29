@@ -1,0 +1,11 @@
+[project]
+name = "remove-your-data"
+version = "0.1.0"
+description = "Agent skill and localhost dashboard to remove personal data from data brokers without paying deletion services."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "remove-your-data contributors" }]
+
+[project.urls]
+Canonical = "https://github.com/REPLACE/remove-your-data"
