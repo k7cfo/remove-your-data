@@ -1,16 +1,8 @@
 # Contributing
 
-Thank you for making this skill more effective. The point of a public repo is a single queue of broker URLs, legal clocks, and agent gotchas — not a dozen drifting copies.
+PRs on **this** repo are the product. Broker URLs, legal clocks, and agent gotchas go stale. Open a pull request here. Do not publish a fork.
 
-## Canonical repository
-
-This repository is the project. Please:
-
-1. Open an issue or pull request **here**.
-2. Use a GitHub fork only to send that pull request, then ignore the fork.
-3. Do not publish a packaged / renamed / "improved" copy as its own project.
-
-GitHub will still show a Fork button. That is a platform feature, not an invitation to split the work.
+GitHub's Fork button is only the mechanic for sending that PR. Ignore the fork afterward.
 
 ## License of contributions
 

@@ -18,7 +18,7 @@ Log every step so a regulator, letter service, or attorney can use it later.
 
 This is an operations playbook, not legal advice.
 
-Canonical project: contribute improvements upstream. Do not maintain a diverging fork. See `README.md` and `CONTRIBUTING.md`.
+Canonical repo: https://github.com/k7cfo/remove-your-data — send improvements as PRs, do not publish a fork. Boot: `AGENTS.md`.
 
 ## About and why
 
