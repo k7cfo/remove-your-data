@@ -24,7 +24,7 @@ Typical response window: **45 days**.
 
 States with data-broker **registration** (not a California-style one-shot DROP): Texas, Oregon, Vermont. Use the registry to find brokers, then file per broker.
 
-Google Search "Results about you" can hide an address/phone snippet while a broker page is still up. Optional extra, not a broker opt-out.
+Google Search **Results about you** hides an address/phone **snippet**; it does not delete the broker page. Last failsafe after opt-outs: SKILL.md §7a and `references/search.md`.
 
 ## EU / EEA
 
