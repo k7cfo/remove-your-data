@@ -23,4 +23,7 @@ First public drop. Agent-first skill + localhost app.
 
 ## Unreleased
 
-Nothing yet. PRs go here.
+### Changed
+
+- Field notes: ContactOut Turnstile + `support@` fallback; TruePeopleSearch `.net` Google Form needs a signed-in consumer Google; Spokeo empty `/optout` → `privacy@`; Open Data USA null-MX / leftover vehicle cards / letter after the contact window; origin timeout is not a drop; PeopleConnect name-index teasers; Radaris city-only skip; ~90-day re-list clock.
+

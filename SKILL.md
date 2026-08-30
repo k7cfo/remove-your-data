@@ -275,12 +275,13 @@ Per listing:
 
 Site notes that keep biting:
 
-- **Spokeo** — profile or `/optout`. Keep `optout_request_id`. Uncommon domains (including some AgentMail) are rejected; use the consumer fallback inbox.
-- **Open Data USA** — one email per person; Gmail `+` aliases collapse; custom domains often rejected. Quoted-printable mail can corrupt `token=` (`=11` → control char); reconstruct from the raw `.eml` if the link 404s. Confirm page can lie; recheck the public URL.
-- **Radaris** — official privacy form; confirm email required. Name-index URL and regional mirrors can both stay live. Recheck both.
-- **Whitepages** — suppression form; often an automated **phone call** with a code. Have them ready. Old addresses = extra profiles.
-- **PeopleConnect** — one suppression for the family. Do not file Intelius / TruthFinder / Instant Checkmate / US Search separately unless a listing remains.
-- **TruePeopleSearch / FastPeopleSearch** — same operator family; file both. Datacenter 403 is common.
+- **Spokeo** — profile or `/optout`. Keep `optout_request_id`. Uncommon domains (including some AgentMail) are rejected; use the consumer fallback inbox. Verify links can land on an empty `/optout`; do not loop. Email `privacy@spokeo.com` and watch 24–72h. A Zendesk agent may remove it; do not reply in that chat.
+- **Open Data USA** — one email per person; Gmail `+` aliases collapse; custom domains often rejected. Quoted-printable mail can corrupt `token=` (`=11` → control char); reconstruct from the raw `.eml` if the link 404s. Confirm page can lie; recheck the public URL. `optout@` can be null-MX dead; prefer `/contact` subject Other. Vehicle/VIN cards can survive; after the stated window, letter (they may publish no street address, only a WHOIS privacy proxy). Do not refile during the window.
+- **Radaris** — official privacy form; confirm email required. Name-index URL and regional mirrors can both stay live. Recheck both. A city teaser with no street or phone is not enough to refile.
+- **Whitepages** — suppression form; often an automated **phone call** with a code. Have them ready. Old addresses = extra profiles. Property Intel is a separate product; email `privacyrequest@whitepages.com`. Do not open a second ticket unless they demand ID.
+- **PeopleConnect** — one suppression for the family. Do not file Intelius / TruthFinder / Instant Checkmate / US Search separately unless a listing remains. A name-index teaser can linger after the parent suppression; watch, do not refile the four brands.
+- **TruePeopleSearch / FastPeopleSearch** — same operator family; file both. Datacenter 403 is common. `.com` and `.net` are different hosts. `.net` opt-out can be a Google Form that 401s unless the browser is signed into a consumer Google account. Do not invent another email.
+- **ContactOut** — CA-registered B2B people finder. `/optout` is email-verify plus Turnstile; datacenter checkbox often never ticks (one attempt, do not loop). Fallback: `support@contactout.com`. Profile FAQs can reprint full phone and work email. Origin CF/timeout is not a drop.
 
 If a site has no form: send `templates/erasure-request.md` to the privacy contact, start a legal clock, log the message-id.
 
@@ -374,7 +375,7 @@ Clock kinds:
 | `drop_90d` | after DROP submit | once at 90d |
 | `rescan` | always | `cadence_hours` |
 
-A listing becomes `gone` only when the exact URL no longer shows the identifier. Verified filing + still visible after the window → `leftover`.
+A listing becomes `gone` only when the exact URL no longer shows the identifier. Verified filing + still visible after the window → `leftover`. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Closed is not forever; many brokers re-list inside ~90 days.
 
 Escalation, unless they say otherwise:
 
