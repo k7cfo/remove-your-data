@@ -49,3 +49,5 @@ Data brokers publish you. Paid “we'll delete you” apps mostly file the same 
 ## License
 
 [AGPL-3.0-or-later](LICENSE). Free to use. If you ship a modified copy, or run a modified version as a network service, keep it AGPL and share the source. Contributions are inbound=outbound. Details in `LICENSE`.
+
+What changed: [`CHANGELOG.md`](CHANGELOG.md).
