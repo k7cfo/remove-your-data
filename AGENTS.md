@@ -43,5 +43,6 @@ Use whatever this host already has. Do not install software they did not ask for
 | `scripts/schema.sql` | Legal log schema |
 | `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` |
 | `CONTRIBUTING.md` | How to PR |
+| `CHANGELOG.md` | What shipped |
 
 Python is stdlib-only. Do not add a dependency without a PR that says why.

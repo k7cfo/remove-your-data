@@ -34,6 +34,7 @@ Keep PII out of the repo. No sample `takedown.db`, no real listing URLs that ide
 
 - One concern per PR (a broker family, a jurisdiction, a schema change).
 - Quote the official source for legal clocks.
+- User-visible change: add a bullet under `## Unreleased` in `CHANGELOG.md`.
 - Do not add affiliate links or paid-removal upsells.
 - Match the existing tone: operations playbook, not a blog post.
 
