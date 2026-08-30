@@ -47,6 +47,7 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 - Do not collect anyone's email or site password. If a verify link lands in a mailbox you must not open, they click it.
 - Do not reuse one email across two roster people (Open Data USA: one address per person; Gmail plus-aliases collapse).
 - Do not retry Cloudflare Turnstile / datacenter-blocked forms in a loop. Log `blocked`, move on.
+- Do not call a listing gone from curl Cloudflare/timeout alone. Recheck in a real browser or alternate fetch. Hourly CF after a recent live reading is opacity, not a drop.
 - Do not promise a listing is gone because a confirm page said so. Recheck the public URL.
 - Do not store PII in this git clone.
 - Do not recommend paying Incogni / DeleteMe / Optery / similar.
@@ -276,12 +277,12 @@ Per listing:
 Site notes that keep biting:
 
 - **Spokeo** — profile or `/optout`. Keep `optout_request_id`. Uncommon domains (including some AgentMail) are rejected; use the consumer fallback inbox. Verify links can land on an empty `/optout`; do not loop. Email `privacy@spokeo.com` and watch 24–72h. A Zendesk agent may remove it; do not reply in that chat.
-- **Open Data USA** — one email per person; Gmail `+` aliases collapse; custom domains often rejected. Quoted-printable mail can corrupt `token=` (`=11` → control char); reconstruct from the raw `.eml` if the link 404s. Confirm page can lie; recheck the public URL. `optout@` can be null-MX dead; prefer `/contact` subject Other. Vehicle/VIN cards can survive; after the stated window, letter (they may publish no street address, only a WHOIS privacy proxy). Do not refile during the window. If the origin parks (registrar marketplace, people and privacy URLs 404), cancel the letter; leftover SERP snippets wait until other live people-search listings are down.
+- **Open Data USA** — one email per person; Gmail `+` aliases collapse; custom domains often rejected. Quoted-printable mail can corrupt `token=` (`=11` → control char); reconstruct from the raw `.eml` if the link 404s. Confirm page can lie; recheck the public URL. `optout@` can be null-MX dead; prefer `/contact` subject Other. Vehicle/VIN cards can survive; after the stated window, letter (they may publish no street address, only a WHOIS privacy proxy). Do not refile during the window. If the origin parks (registrar marketplace, people and privacy URLs 404), cancel the letter; leftover SERP snippets wait until other live people-search listings are down. Confirm parked with a browser plus RDAP/WHOIS, not curl timeout alone.
 - **Radaris** — official privacy form; confirm email required. Name-index URL and regional mirrors can both stay live. Recheck both. A city teaser with no street or phone is not enough to refile.
 - **Whitepages** — suppression form; often an automated **phone call** with a code. Have them ready. Old addresses = extra profiles. Property Intel is a separate product; email `privacyrequest@whitepages.com`. Zendesk auto-replies can list many state privacy laws while omitting California; reply on the same thread asserting CCPA / CPRA / California Delete Act. Do not open a second ticket unless they demand ID.
-- **PeopleConnect** — one suppression for the family. Do not file Intelius / TruthFinder / Instant Checkmate / US Search separately unless a listing remains. A name-index teaser can linger after the parent suppression; watch, do not refile the four brands.
+- **PeopleConnect** — one suppression for the family. Do not file Intelius / TruthFinder / Instant Checkmate / US Search separately unless a listing remains. A name-index teaser can linger after the parent suppression, or go quiet (CF/timeout) and then show phone/street/relative again. Watch; do not refile the four brands. Escalate only if a unique profile URL returns.
 - **TruePeopleSearch / FastPeopleSearch** — same operator family; file both. Datacenter 403 is common. `.com` and `.net` are different hosts. `.net` opt-out can be a Google Form that 401s unless the browser is signed into a consumer Google account. Do not invent another email.
-- **ContactOut** — CA-registered B2B people finder. `/optout` is email-verify plus Turnstile; datacenter checkbox often never ticks (one attempt, do not loop). Fallback: `support@contactout.com`. Profile FAQs can reprint full phone and work email. Origin CF/timeout is not a drop.
+- **ContactOut** — CA-registered B2B people finder. `/optout` is email-verify plus Turnstile; datacenter checkbox often never ticks (one attempt, do not loop). Fallback: `support@contactout.com`. Profile FAQs can reprint full phone and work email. Origin CF/timeout is not a drop. Hourly CF vs 200 with the same identifiers is opacity, not a drop.
 - **CheckPeople** — `/do-not-sell-info`. A `support@` CCPA email can confirm expunge while the public URL stays Cloudflare-blocked for up to ~48h. Do not refile or loop Turnstile after a written confirm.
 - **MyLife** — privacy Jotforms can disappear. Do not send ID alone. A 410 can still SERP; a dropped page can reappear in Bing/Yahoo. Recheck the live URL before treating it as back.
 
@@ -377,7 +378,7 @@ Clock kinds:
 | `drop_90d` | after DROP submit | once at 90d |
 | `rescan` | always | `cadence_hours` |
 
-A listing becomes `gone` only when the exact URL no longer shows the identifier. Verified filing + still visible after the window → `leftover`. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Closed is not forever; many brokers re-list inside ~90 days.
+A listing becomes `gone` only when the exact URL no longer shows the identifier. Verified filing + still visible after the window → `leftover`. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Curl Cloudflare and a browser fetch can disagree — do not mark drop from one transport. Hourly CF after a recent live reading is opacity, not a drop. Count people / property / reverse-phone URLs, not bare directory landings. Closed is not forever; many brokers re-list inside ~90 days.
 
 Escalation, unless they say otherwise:
 

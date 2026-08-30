@@ -25,5 +25,5 @@ First public drop. Agent-first skill + localhost app.
 
 ### Changed
 
-- Field notes: ContactOut Turnstile + `support@` fallback; TruePeopleSearch `.net` Google Form needs a signed-in consumer Google; Spokeo empty `/optout` → `privacy@`; Open Data USA null-MX / leftover vehicle cards / letter after the contact window / parked origin cancels the letter; origin timeout is not a drop; PeopleConnect name-index teasers; Radaris city-only skip; ~90-day re-list clock; Whitepages Zendesk auto-ack may omit California (reply on the same thread); CheckPeople written expunge vs ~48h CF lag; MyLife 410 can still SERP.
+- Field notes: ContactOut Turnstile + `support@` fallback; TruePeopleSearch `.net` Google Form needs a signed-in consumer Google; Spokeo empty `/optout` → `privacy@`; Open Data USA null-MX / leftover vehicle cards / letter after the contact window / parked origin cancels the letter (confirm via browser + RDAP); origin timeout is not a drop; PeopleConnect name-index teasers can go quiet then resurface; curl CF vs browser can disagree; hourly CF after a live reading is opacity; Radaris city-only skip; ~90-day re-list clock; Whitepages Zendesk auto-ack may omit California (reply on the same thread); CheckPeople written expunge vs ~48h CF lag; MyLife 410 can still SERP.
 
