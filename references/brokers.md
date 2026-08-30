@@ -8,16 +8,16 @@ Do not pay a site to remove a listing.
 
 | Broker | Opt-out | Notes |
 | --- | --- | --- |
-| Whitepages | https://www.whitepages.com/suppression-requests | Often verifies with an automated phone call. Extra profiles per old address. |
+| Whitepages | https://www.whitepages.com/suppression-requests | Often verifies with an automated phone call. Extra profiles per old address. Property Intel: email privacyrequest@. Auto-replies may omit California; reply on the same thread (CCPA/CPRA/Delete Act). |
 | Spokeo | https://www.spokeo.com/optout | Paste profile URL. Keep request id. Consumer inbox; some agent domains rejected. Drop window often 24–48h. |
 | BeenVerified | https://www.beenverified.com/app/optout/search | Email verify. |
 | TruePeopleSearch | https://www.truepeoplesearch.com/removal | Datacenter IP often 403. File FastPeopleSearch too. `truepeoplesearch.net` is a different host; opt-out can be a Google Form that needs a signed-in consumer Google account. |
 | FastPeopleSearch | https://www.fastpeoplesearch.com/removal | Same operator family as TruePeopleSearch. |
 | Radaris | https://radaris.com/control/privacy | Confirm email required. Recheck name-index and regional mirrors. |
-| Open Data USA | on-page people card | One email per person. No Gmail plus-aliases. Custom domains often rejected. `optout@` can be null-MX dead; use `/contact` subject Other. Vehicle cards can survive; after the window, letter. |
+| Open Data USA | on-page people card | One email per person. No Gmail plus-aliases. Custom domains often rejected. `optout@` can be null-MX dead; use `/contact` subject Other. Vehicle cards can survive; after the window, letter. If the origin parks (people/privacy 404), cancel the letter. |
 | PeopleFinders | https://www.peoplefinders.com/opt-out | Public form may be Turnstile-blocked; `privacy@` has bounced. Log and move. |
 | USPhoneBook | https://www.usphonebook.com/opt-out | Reverse-phone. |
-| MyLife | https://www.mylife.com/privacyrequest | Slow. Follow up with the erasure template. |
+| MyLife | https://www.mylife.com/privacyrequest | Slow. Jotforms can disappear; do not send ID alone. A 410 can still SERP; dropped pages can reappear in Bing/Yahoo. |
 | Nuwber | https://nuwber.com/optout | |
 | ThatsThem | https://thatsthem.com/optout | |
 | Sync.me | site privacy / opt-out | Reverse-phone app. |
@@ -27,6 +27,7 @@ Do not pay a site to remove a listing.
 | ContactOut | https://contactout.com/optout | CA-registered B2B finder. `/optout` is email-verify + Turnstile; datacenter often fails. Fallback `support@contactout.com`. Do not loop Turnstile. |
 | PublicDataUSA | site privacy / opt-out | Distinct from Open Data USA. Confirm live URL before filing. |
 | PeekYou | site privacy / opt-out | Confirm live URL before filing. |
+| CheckPeople | https://www.checkpeople.com/do-not-sell-info | `support@` can confirm expunge while the public URL lags or stays CF-blocked ~48h. Do not refile after a written confirm. |
 
 ## One form, several brands
 
