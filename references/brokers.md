@@ -27,7 +27,8 @@ Do not pay a site to remove a listing.
 | ContactOut | https://contactout.com/optout | CA-registered B2B finder. `/optout` is email-verify + Turnstile; datacenter often fails. Fallback `support@contactout.com`. Do not loop Turnstile. |
 | PublicDataUSA | site privacy / opt-out | Distinct from Open Data USA. Confirm live URL before filing. |
 | PeekYou | site privacy / opt-out | Confirm live URL before filing. |
-| CheckPeople | https://www.checkpeople.com/do-not-sell-info | `support@` can confirm expunge while the public URL lags or stays CF-blocked ~48h. Do not refile after a written confirm. |
+| CheckPeople | https://www.checkpeople.com/do-not-sell-info | `support@` can confirm expunge while the public URL lags or stays CF-blocked ~48h. After that, a Google name-index `/name/…` snippet can still show PII while origin is CF. Do not refile. SERP last-step. |
+| National Public Data | https://nationalpublicdata.com/optout.html | Unique `/people/…` URL required. `/optout.html` is Turnstile; datacenter often fails. One try. Fallback `support@nationalpublicdata.com` with the profile URL. Do not file SERP while origin is live. |
 
 ## One form, several brands
 
