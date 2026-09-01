@@ -12,9 +12,9 @@ This repo **is** the skill. You do not need a human to explain it.
 
 1. Read [`AGENTS.md`](AGENTS.md) (boot).
 2. Read [`SKILL.md`](SKILL.md) (playbook).
-3. Start §1. Roster (aliases, addresses, phones, family, `keep_host` / `keep_url`) is SQLite + `/roster`. Then run the loop.
+3. Start §0 (tools this host has) then §1 intake 1:1. Roster is SQLite + `/roster` if Python works, else `templates/paper-log.md`. Then run the loop.
 
-Workspace (`takedown.db`, evidence) goes **outside** this clone. Data flow: [`docs/PRIVACY.md`](docs/PRIVACY.md).
+Workspace (`takedown.db` or paper log, evidence) goes **outside** this clone. Data flow: [`docs/PRIVACY.md`](docs/PRIVACY.md). No Python is fine — coach or paper log (`SKILL.md` §0).
 
 ```bash
 python3 scripts/ryd.py init --workspace "$HOME/privacy-takedown"
