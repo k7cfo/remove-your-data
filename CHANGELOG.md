@@ -30,11 +30,13 @@ First public drop. Agent-first skill + localhost app.
 - Harness fallbacks ([#4](https://github.com/k7cfo/remove-your-data/issues/4)): detect tools, use them, or coach. No Python → `templates/paper-log.md`. Missing browser/mail/scheduler degrades; do not refuse the job.
 - Localhost dashboard restyle ([#3](https://github.com/k7cfo/remove-your-data/issues/3)): knowsuchagency **Nothing** tokens (instrument panel, red interrupt, `light-dark`, theme toggle). Stdlib CSS only.
 - Scheduler ([#2](https://github.com/k7cfo/remove-your-data/issues/2)): detect what this host already uses; recommend one specific re-invoke. Not a catalog of products.
-- `RYD_PREVIEW=1` allows binding off loopback for a Tailscale-only demo. Default remains 127.0.0.1.
+- Stdlib-only QA suite and GitHub Actions matrix for Python 3.10–3.13: CLI, SQLite, consent boundaries, HTTP routes, security headers, exports, and registry parsing. CI uses synthetic data and never contacts a broker.
+- Dashboard hardening: same-origin POST checks, DNS-rebinding Host validation, CSP/security headers, safe URL rendering, private export modes, and off-loopback preview restricted to the built-in synthetic demo.
 
 ### Changed
 
 - README shots: report, roster, and settings from the Nothing dashboard (dark, sample household).
+- Search packs now require a completed primary intake, preserve explicit unconfirmed consent, exclude the defunct Open Data USA host, and report DROP status per person.
+- Evidence CSV exports include the complete household chronology, use deterministic ordering, and neutralize spreadsheet formulas.
 
 - Field notes: ContactOut Turnstile + `support@` fallback; TruePeopleSearch `.net` Google Form needs a signed-in consumer Google; Spokeo empty `/optout` → `privacy@`; Open Data USA null-MX / leftover vehicle cards / letter after the contact window / parked origin cancels the letter (confirm via browser + RDAP); origin timeout is not a drop; PeopleConnect name-index teasers can go quiet then resurface; curl CF vs browser can disagree; hourly CF after a live reading is opacity; Radaris city-only skip; ~90-day re-list clock; Whitepages Zendesk auto-ack may omit California (reply on the same thread); CheckPeople written expunge vs ~48h CF lag, then Google name-index can still snippet PII while origin is CF (do not refile); MyLife 410 can still SERP; National Public Data `/optout.html` Turnstile + `support@` fallback.
-
