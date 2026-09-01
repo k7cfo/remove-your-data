@@ -28,6 +28,8 @@ First public drop. Agent-first skill + localhost app.
 - Playbook upgrades ([#1](https://github.com/k7cfo/remove-your-data/issues/1)): `STATUS.md` (verified / untested / defunct), `references/dead-urls.md` (loaded by `ryd.py pack`), named **file** vs **verify** pass, `relist_90d` clock, roster allowlist (`keep_host` / `keep_url`), `docs/PRIVACY.md`, `scripts/registry_pull.py` (hostname diff, no spray), `templates/regulator-complaint.md`, SERP new-host watch (`exports/serp-hosts.txt`). Queue gaps confirmed live where the form answered 200 (SmartBackgroundChecks, InfoTracer, SocialCatfish); PeekYou / PeopleSmart / SearchPeopleFree / PeopleSearchNow listed `untested` (datacenter 403); PublicDataUSA and Open Data USA origin marked `defunct`. Clearbit opt-out 404 → HubSpot privacy preferences.
 - Intake asks onboarding questions **one at a time** ([#5](https://github.com/k7cfo/remove-your-data/issues/5)); do not dump the questionnaire.
 - Harness fallbacks ([#4](https://github.com/k7cfo/remove-your-data/issues/4)): detect tools, use them, or coach. No Python → `templates/paper-log.md`. Missing browser/mail/scheduler degrades; do not refuse the job.
+- Localhost dashboard restyle ([#3](https://github.com/k7cfo/remove-your-data/issues/3)): knowsuchagency **Nothing** tokens (instrument panel, red interrupt, `light-dark`, theme toggle). Stdlib CSS only.
+- Scheduler ([#2](https://github.com/k7cfo/remove-your-data/issues/2)): detect what this host already uses; recommend one specific re-invoke. Not a catalog of products.
 
 ### Changed
 

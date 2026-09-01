@@ -73,6 +73,25 @@ GEAR_LINK = (
     '0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
     "</svg></a>"
 )
+THEME_BOOT = (
+    "<script>(function(){try{var t=localStorage.getItem('ryd-theme');"
+    "if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}"
+    "catch(e){}})();</script>"
+)
+THEME_CTRL = (
+    '<button type="button" class="theme-toggle" id="themeBtn" aria-label="Theme">sys</button>'
+    "<script>(function(){var k='ryd-theme',o=['system','light','dark'];"
+    "function lab(t){return t==='dark'?'dk':t==='light'?'lt':'sys';}"
+    "function apply(t){var r=document.documentElement;"
+    "if(!t||t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);"
+    "var b=document.getElementById('themeBtn');if(b)b.textContent=lab(t||'system');}"
+    "var cur='system';try{cur=localStorage.getItem(k)||'system';}catch(e){}"
+    "apply(cur);"
+    "var b=document.getElementById('themeBtn');"
+    "if(b)b.addEventListener('click',function(){var n=o[(o.indexOf(cur)+1)%3];cur=n;"
+    "try{if(n==='system')localStorage.removeItem(k);else localStorage.setItem(k,n);}catch(e){}"
+    "apply(n);});})();</script>"
+)
 
 
 def utcnow() -> datetime:
@@ -1119,6 +1138,7 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{THEME_BOOT}
 {refresh}
 <title>{escape(title)}</title>
 <style>{css}</style>
@@ -1132,6 +1152,7 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
       <span class="chip">127.0.0.1</span>
       <span>{escape(report["generated_at"])}</span>
       {links}
+      {THEME_CTRL}
     </div>
   </nav>
   {who}
@@ -1386,6 +1407,7 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{THEME_BOOT}
 <title>Roster — {escape(name)}</title>
 <style>{css}</style>
 </head>
@@ -1396,6 +1418,7 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
     <div class="top-meta">
       <a href="/">report</a>
       {GEAR_LINK}
+      {THEME_CTRL}
       <span class="chip">127.0.0.1</span>
     </div>
   </nav>
@@ -1487,6 +1510,7 @@ def render_settings(report: dict[str, Any], flash: str = "") -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{THEME_BOOT}
 <title>Settings — remove-your-data</title>
 <style>{css}</style>
 </head>
@@ -1498,6 +1522,7 @@ def render_settings(report: dict[str, Any], flash: str = "") -> str:
       <a href="/">report</a>
       <a href="/roster">roster</a>
       {GEAR_LINK}
+      {THEME_CTRL}
       <span class="chip">127.0.0.1</span>
     </div>
   </nav>

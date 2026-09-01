@@ -387,12 +387,17 @@ python3 scripts/ryd.py settings --workspace "$WORKSPACE" --cadence 7d --paused 0
 
 If `paused=1`, do not search or file. Still process due legal clocks if the user asked. Unpause from Settings or `--paused 0`. Paper: a `paused` note on the roster.
 
-Cadence default 168h (weekly). Register a recurring job on **whatever this host already has** — do not invent a daemon:
+Cadence default 168h (weekly). **Do not catalog every product.** Detect what this host already uses to run a job later, then recommend **one** specific setup. Same ladder as §0: use it, offer to get one, or coach.
 
-- OpenClaw / Hermes / similar: cron or heartbeat that re-invokes this skill
-- systemd user timer, launchd, Task Scheduler
-- The host agent's scheduled tasks
-- If the host has no scheduler: tell them the exact command / phrase to re-run, and the next due date. Coach-only hosts: one sentence they can paste back into the same chat next week.
+Detect (quietly — do not dump a menu):
+
+1. This agent's own scheduler, cron, heartbeat, or "scheduled task" tool.
+2. The OS: `systemctl --user`, `launchctl`, `schtasks`, `crontab`.
+3. Nothing — they re-paste a sentence into the same chat.
+
+Then say, in one short block: the exact re-invoke phrase (the same words they used today), `cadence_hours`, and the next due clock (UTC + local). Do not install a daemon they did not ask for. Do not invent a second loop beside the host's.
+
+If several exist, pick the one already wired to this agent.
 
 Each invocation:
 
