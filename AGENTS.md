@@ -53,3 +53,9 @@ Use whatever this host already has. Do not install software they did not ask for
 | `CHANGELOG.md` | What shipped |
 
 `ryd.py` is stdlib-only. Do not add a dependency without a PR that says why. The skill still runs without Python (`SKILL.md` §0).
+
+## Code Review Rules
+
+- Treat consent and completed intake as data boundaries: no search pack or filing may include an inactive, unconfirmed, or intake-incomplete person.
+- Keep real PII outside the clone and keep the dashboard loopback-only by default; flag changes that expose workspace data, weaken browser-origin checks, or relax file permissions.
+- Keep `ryd.py` and its tests Python-stdlib-only unless a PR explicitly justifies a dependency. Deterministic checks belong in CI; live broker forms and real identities do not.

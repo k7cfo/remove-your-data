@@ -57,3 +57,14 @@ Data brokers publish you. Paid “we'll delete you” apps mostly file the same 
 [AGPL-3.0-or-later](LICENSE). Free to use. If you ship a modified copy, or run a modified version as a network service, keep it AGPL and share the source. Contributions are inbound=outbound. Details in `LICENSE`.
 
 What changed: [`CHANGELOG.md`](CHANGELOG.md).
+
+## Development
+
+QA is Python-stdlib-only and uses temporary synthetic identities. It never contacts a broker or submits a live form.
+
+```bash
+python3 -m compileall -q scripts tests
+python3 -m unittest discover -s tests -v
+```
+
+GitHub Actions runs the same checks on Python 3.10–3.13. Real-data dashboards remain loopback-only; `RYD_PREVIEW=1` can expose only the built-in synthetic `--demo` workspace.

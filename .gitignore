@@ -11,6 +11,13 @@ exports/
 .env
 .env.*
 *.eml
+roster.md
+action-log.*
+leftovers.md
+serp-hosts.txt
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
 .DS_Store
 

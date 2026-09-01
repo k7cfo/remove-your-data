@@ -130,6 +130,7 @@ CREATE INDEX IF NOT EXISTS idx_ident_person ON identifier(person_id, kind);
 
 CREATE VIEW IF NOT EXISTS v_evidence_chronology AS
 SELECT
+  a.id AS action_log_id,
   a.occurred_at_utc,
   a.occurred_at_local,
   a.actor,
