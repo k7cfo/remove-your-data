@@ -21,7 +21,9 @@ Do not volunteer DOB, SSN, extra phones, or ID scans unless that form requires t
 - The git clone of this repo stays free of PII. Never commit `takedown.db`, paper logs, evidence, DROP IDs, listing slugs, phones, emails, or ticket numbers.
 - The workspace (`takedown.db` or `templates/paper-log.md` copies, `evidence/`, `exports/`) lives **outside** the clone. `chmod 700` workspace, `chmod 600` db if you have one.
 - Confirm pages, request IDs, DROP IDs, and mailbox contents stay in that private workspace (`action_log`, paper log, `email_event`, `evidence/YYYY-MM-DD/`).
-- The localhost dashboard binds `127.0.0.1` only.
+- A real-data dashboard binds `127.0.0.1` only. `RYD_PREVIEW=1` can bind off loopback only with the built-in synthetic `--demo` workspace.
+
+The SQLite workspace is not application-encrypted. Keep it on an encrypted, non-synced disk or encrypted home directory when the identifiers are sensitive.
 
 ## Roster allowlist
 

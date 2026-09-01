@@ -1,0 +1,86 @@
+name: QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile
+        run: python -m compileall -q scripts tests
+      - name: Test
+        run: python -m unittest discover -s tests -v
+
+  browser-smoke:
+    # GitHub-hosted runners are disposable VMs; no real identity data is used here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Start synthetic dashboard
+        run: |
+          demo_dir="${RUNNER_TEMP}/ryd-browser-demo"
+          python scripts/ryd.py serve --demo --workspace "${demo_dir}" \
+            >"${RUNNER_TEMP}/ryd-server.log" 2>&1 &
+          echo "$!" >"${RUNNER_TEMP}/ryd-server.pid"
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8765/health; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat "${RUNNER_TEMP}/ryd-server.log"
+          exit 1
+      - name: Verify pages in headless Chrome
+        run: |
+          for route in report roster settings; do
+            case "${route}" in
+              report) url="http://127.0.0.1:8765/" ;;
+              *) url="http://127.0.0.1:8765/${route}" ;;
+            esac
+            google-chrome --headless --no-sandbox --disable-gpu \
+              --window-size=1440,1400 --dump-dom "${url}" \
+              >"${RUNNER_TEMP}/${route}.html"
+            google-chrome --headless --no-sandbox --disable-gpu \
+              --window-size=1440,1400 \
+              --screenshot="${RUNNER_TEMP}/${route}.png" "${url}"
+          done
+          grep --quiet "Jane Q. Public" "${RUNNER_TEMP}/report.html"
+          grep --quiet "Household roster" "${RUNNER_TEMP}/roster.html"
+          grep --quiet "Scan routine" "${RUNNER_TEMP}/settings.html"
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke
+          path: |
+            ${{ runner.temp }}/report.html
+            ${{ runner.temp }}/report.png
+            ${{ runner.temp }}/roster.html
+            ${{ runner.temp }}/roster.png
+            ${{ runner.temp }}/settings.html
+            ${{ runner.temp }}/settings.png
+            ${{ runner.temp }}/ryd-server.log
+      - name: Stop dashboard
+        if: always()
+        run: |
+          if test -f "${RUNNER_TEMP}/ryd-server.pid"; then
+            kill "$(cat "${RUNNER_TEMP}/ryd-server.pid")" || true
+          fi
