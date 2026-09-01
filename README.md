@@ -1,10 +1,16 @@
 # remove-your-data
 
-![Takedown dashboard](docs/dashboard.png)
-
 Agent skill: remove a person's listings from people-search sites and data brokers **without paying deletion services**. First-party opt-outs, CA DROP when they live in California, a SQLite legal log, a localhost report.
 
 This is not legal advice.
+
+![Report](docs/dashboard.png)
+
+![Roster](docs/roster.png)
+
+![Settings](docs/settings.png)
+
+Localhost only (`127.0.0.1:8765`): running report, household roster, cadence/pause. Synthetic sample data in the shots.
 
 ## If you are an agent
 
