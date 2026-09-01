@@ -175,7 +175,7 @@ def load_dead_urls() -> list[tuple[str, str]]:
         cols = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cols) < 2:
             continue
-        key = cols[0].strip().strip("`")
+        key = cols[0].strip().replace("`", "")
         if not key or key.lower().startswith("url") or set(key) <= set("-: "):
             continue
         rows.append((key, cols[1]))
