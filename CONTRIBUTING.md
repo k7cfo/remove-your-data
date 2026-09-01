@@ -26,8 +26,9 @@ High value:
 - `STATUS.md` — `verified` / `untested` / `defunct` against the current form
 - `references/dead-urls.md` — 404 / 410 / null-MX / parked paths agents must skip
 - `references/jurisdictions.md` — clocks and portals, with a link to the official page
-- `SKILL.md` — agent steps that failed in production (mailbox rejects, Turnstile, quoted-printable tokens)
+- `SKILL.md` — agent steps that failed in production (mailbox rejects, Turnstile, quoted-printable tokens, no-Python hosts)
 - `references/search.md` — query packs and engine quirks
+- `templates/paper-log.md` — fallback log when `ryd.py` cannot run
 - `scripts/schema.sql` — only if the log cannot record a real event
 
 Keep PII out of the repo. No sample `takedown.db`, no real listing URLs that identify a person, no DROP IDs.

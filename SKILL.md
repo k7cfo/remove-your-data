@@ -55,9 +55,33 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 - Do not loop hosts in `references/dead-urls.md`. Load `STATUS.md` with the queue. `defunct` = skip.
 - One clean filing plus verify per listing. Recheck later instead of spamming the form.
 
+## 0. Harness capability
+
+This playbook does not require Python, a browser tool, a mailbox API, or a cron. Those help. Missing one is not a stop.
+
+**Detect first.** Before intake, list what this host already has: `python3`, a writable folder, a browser you can drive, search, a mailbox you can read, a scheduler. Do not install software they did not ask for. If you can list tools yourself, skip intake Q8 and record the list. If you cannot tell, Q8 is that one question.
+
+For each gap, **one** offer (1:1), then degrade:
+
+1. Get it — only if they want: Python 3.10+ for `ryd.py`, a browser MCP / Playwright, AgentMail, the host’s scheduler.
+2. Use what you have.
+3. Coach the human: you give the URL and the exact fields; they click; they read back request id / screenshot / “verify email arrived”.
+
+| Need | If you have it | If you do not |
+| --- | --- | --- |
+| `python3` + `scripts/ryd.py` | SQLite workspace, `/roster`, dashboard | Paper log: copy `templates/paper-log.md` outside the clone. Same facts, no dashboard. |
+| Writable folder | `$WORKSPACE` with evidence | Coach lines. They paste a notes file back next session. |
+| Browser you can drive | You file the official form | Coach: official URL, fields already on the listing, what success looks like. They paste the confirm back. One Turnstile attempt still — they must not loop either. |
+| Search | Query pack in `references/search.md` | They paste listing URLs / SERP they already see. Do not invent URLs. |
+| Mailbox you can read | You complete verify/OTP | They click the link. You never ask for their password. |
+| Scheduler | Host cron / heartbeat / systemd | Exact re-invoke phrase + next due date. No daemon. |
+
+Do not fake a filing from a homepage curl. Do not refuse the job because the harness is “too small.” File pass / verify pass / allowlist / dead-urls still apply.
+
+
 ## 1. Roster — source of truth
 
-Aliases, addresses, phones, and family members live in SQLite, **not** in chat memory. The dashboard editor is `/roster`. Agents can also write via CLI. Every later pass **reads the roster** and scans each consented person separately.
+Aliases, addresses, phones, and family members live in the workspace, **not** in chat memory. SQLite + `/roster` when Python works. Otherwise `templates/paper-log.md`. Every later pass **reads the roster** and scans each consented person separately.
 
 ```bash
 python3 scripts/ryd.py init --workspace "$WORKSPACE"
@@ -83,7 +107,7 @@ Primary person, required, this order:
 5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address.
 6. Cadence (default 7 days if they skip)
 7. Anonymity: `dedicated` / `personal` / `max`
-8. Tools this host already has (or “whatever you find”)
+8. Tools this host already has (skip if you already listed them in §0)
 9. Sites to **keep** (`keep_host` / `keep_url`): LinkedIn, news, personal site, interviews — or “defaults”
 
 Then, still 1:1: aliases, prior addresses, extra phones, family. Optional: DOB / MAID / VIN only if DROP or a form needs them. They may say “skip” or “I’ll use /roster”.
@@ -137,7 +161,9 @@ DROP does **not** delete first-party accounts the person created themselves, exe
 
 ## 3. Workspace and legal log
 
-Create a workspace **outside** this repo (PII never belongs in git):
+Create a workspace **outside** this repo (PII never belongs in git).
+
+Python available:
 
 ```text
 $WORKSPACE/
@@ -146,24 +172,25 @@ $WORKSPACE/
   exports/             # CSV / JSON dumps for a lawyer
 ```
 
-Init:
-
 ```bash
 python3 scripts/ryd.py init --workspace "$WORKSPACE"
 ```
 
 (`scripts/schema.sql` is applied for you. chmod 700 workspace, 600 db.)
 
-SQLite beats CSV as the system of record: unique listing URLs, due-date queries, request IDs, joins across person / broker / clock / email. CSV is an **export**, not the database.
+No Python: copy `templates/paper-log.md` to `$WORKSPACE/roster.md` and keep `action-log.csv` / clocks / leftovers there. chmod 700 if you can. CSV is the system of record on that host. If they later get Python, `ryd.py init` and copy the rows in — do not keep two sources of truth.
 
-On every real action insert `action_log` with:
+SQLite beats CSV when you have it: unique listing URLs, due-date queries, request IDs, joins across person / broker / clock / email. CSV is an **export** from SQLite, or the whole log when SQLite is impossible.
+
+On every real action insert `action_log` (SQL or paper) with:
 
 - `occurred_at_utc` and `occurred_at_local` (person's timezone from intake)
 - actor (`agent`, `user`, `family`)
 - broker, listing URL, action, channel, request ID, result
-- path to evidence file
+- path to evidence file (or “none — coach mode”)
 
 After each filing, insert or refresh a `clock` row (verify email, site drop window, legal response, DROP 45/90). When a listing becomes `gone`, insert `relist_90d` (~90 days). Closed is not forever.
+
 
 Export when asked, or before escalation:
 
@@ -173,9 +200,9 @@ sqlite3 -header -csv "$WORKSPACE/takedown.db" \
   > "$WORKSPACE/exports/evidence-log.csv"
 ```
 
-Keep leftovers in table `leftover` (and optionally `exports/leftovers.md`): URL, what PII is still shown, how you found it, where it is stuck, next step.
+Keep leftovers in table `leftover` (or `leftovers.md` on paper): URL, what PII is still shown, how you found it, where it is stuck, next step.
 
-After each pass, refresh the running report:
+After each pass, refresh the running report **if Python works**:
 
 ```bash
 python3 scripts/ryd.py serve --workspace "$WORKSPACE"
@@ -183,11 +210,11 @@ python3 scripts/ryd.py serve --workspace "$WORKSPACE"
 python3 scripts/ryd.py export --workspace "$WORKSPACE"
 ```
 
-Tell the person the dashboard URL. Do not bind it off localhost. On DROP submit, also `INSERT OR REPLACE INTO config(key,value) VALUES ('drop_filed','1')` so the report shows DROP as filed (store the DROP ID in `action_log.request_id`, not in git).
+Tell the person the dashboard URL only when `serve` is running. Do not bind it off localhost. Paper log: the markdown/CSV **is** the report. On DROP submit, set `drop_filed` in SQL config or on the paper roster (store the DROP ID in `action_log.request_id`, not in git).
 
 ## 4. Email and 2FA
 
-Brokers send confirmation links and OTP codes. The agent cannot finish filings without a mailbox.
+Brokers send confirmation links and OTP codes. Prefer a mailbox the agent can read. If none: coach — they click the link and tell you it worked. Never ask for their password.
 
 Prefer this order:
 
@@ -247,7 +274,7 @@ If the form is Turnstile-blocked from this IP: one attempt, log `blocked`, lefto
 
 ### Finding listings
 
-Run the same query pack across **several** engines. Catalog and query pack: `references/search.md`. `ryd.py pack` prints roster-backed queries.
+Run the same query pack across **several** engines. Catalog and query pack: `references/search.md`. `ryd.py pack` prints roster-backed queries when Python exists; otherwise type the pack from the roster by hand.
 
 Preference (use what exists, skip the rest):
 
@@ -351,39 +378,40 @@ DROP is ongoing, not one-shot. Keep a `clock` for 45-day recheck and 90-day stat
 
 This is not a one-sitting job. Listings reappear. Laws give brokers weeks.
 
-Household routine lives in `config` (dashboard gear → `/settings`, or CLI). Read it every pass:
+Household routine lives in `config` when Python exists (dashboard gear → `/settings`, or CLI). Paper log: cadence on the roster table. Read it every pass:
 
 ```bash
 python3 scripts/ryd.py settings --workspace "$WORKSPACE" --show
 python3 scripts/ryd.py settings --workspace "$WORKSPACE" --cadence 7d --paused 0 --apply-people
 ```
 
-If `paused=1`, do not search or file. Still process due legal clocks if the user asked. Unpause from Settings or `--paused 0`.
+If `paused=1`, do not search or file. Still process due legal clocks if the user asked. Unpause from Settings or `--paused 0`. Paper: a `paused` note on the roster.
 
 Cadence default 168h (weekly). Register a recurring job on **whatever this host already has** — do not invent a daemon:
 
 - OpenClaw / Hermes / similar: cron or heartbeat that re-invokes this skill
 - systemd user timer, launchd, Task Scheduler
 - The host agent's scheduled tasks
-- If the host has no scheduler: tell them the exact command / phrase to re-run, and the next due date
+- If the host has no scheduler: tell them the exact command / phrase to re-run, and the next due date. Coach-only hosts: one sentence they can paste back into the same chat next week.
 
 Each invocation:
 
 ```text
+if tools unknown → §0 detect or Q8 (one question, stop)
 if roster empty / primary intake incomplete → section 1 (one question, stop)
-read settings (paused, cadence_hours)
+read settings (paused, cadence_hours)  # or paper roster
 if paused → report paused, stop search/file
-for each person WHERE active=1 AND consent_basis != 'unconfirmed':
-  process that person's due clocks (overdue first)
-  check that person's mailbox for verify / OTP
-  recheck that person's listing URLs whose window elapsed (**verify pass**)
-  if scan is due → ryd.py pack --person-id N → search pack (section 6); diff serp-hosts.txt
-  file new matches onto that person_id (**file pass**, section 7); skip keep_* and dead-urls
+for each consented person:
+  process due clocks (overdue first)
+  check mailbox for verify / OTP, or ask them if you cannot read mail
+  recheck listing URLs whose window elapsed (**verify pass**) — coach a browser if you have none
+  if scan is due → pack (ryd.py or hand) → search pack (section 6); diff serp-hosts.txt
+  file new matches (**file pass**, section 7); skip keep_* and dead-urls; coach the form if no browser
   leftovers still in Google SERP → §7a only after source URL is down
-  CA: if that person's DROP status due → check DROP; set person.drop_filed
-skip unconfirmed family (visible on /roster only)
-export evidence if anything changed
-refresh dashboard (`ryd.py export` and/or keep `ryd.py serve` running)
+  CA: if DROP status due → check DROP
+skip unconfirmed family
+export evidence if anything changed (ryd.py or paper-log)
+refresh dashboard only if serve works
 report per person: gone / pending / leftover / overdue
 ```
 
@@ -423,8 +451,8 @@ Escalation, unless they say otherwise:
 
 A pass is done when:
 
-- Roster has the primary person (and any consented family) with scan identifiers in SQLite.
-- `ryd.py export` snapshot is current, or `ryd.py serve` is running on loopback (`/roster` is the editor).
+- Roster has the primary person (and any consented family) with scan identifiers in SQLite **or** the paper log.
+- `ryd.py export` / `serve` is current if Python works; otherwise the paper log is current.
 - Each CA resident on the roster: DROP submitted and logged on **that** person, or they refused in the log.
 - Every found public listing for consented people is gone, pending inside its window, blocked with a leftover, or leftover with a next step. Allowlisted hosts were skipped.
 - Leftovers that still rank on Google have a Results-about-you / SERP removal logged **after** the source URL is down, or they refused that failsafe.

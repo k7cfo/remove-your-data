@@ -18,9 +18,9 @@ Do not volunteer DOB, SSN, extra phones, or ID scans unless that form requires t
 ## What does not leave
 
 - No telemetry from this skill. `ryd.py` does not phone home.
-- The git clone of this repo stays free of PII. Never commit `takedown.db`, evidence, DROP IDs, listing slugs, phones, emails, or ticket numbers.
-- The workspace (`takedown.db`, `evidence/`, `exports/`) lives **outside** the clone. `chmod 700` workspace, `chmod 600` db.
-- Confirm pages, request IDs, DROP IDs, and mailbox contents stay in that private workspace (`action_log`, `email_event`, `evidence/YYYY-MM-DD/`).
+- The git clone of this repo stays free of PII. Never commit `takedown.db`, paper logs, evidence, DROP IDs, listing slugs, phones, emails, or ticket numbers.
+- The workspace (`takedown.db` or `templates/paper-log.md` copies, `evidence/`, `exports/`) lives **outside** the clone. `chmod 700` workspace, `chmod 600` db if you have one.
+- Confirm pages, request IDs, DROP IDs, and mailbox contents stay in that private workspace (`action_log`, paper log, `email_event`, `evidence/YYYY-MM-DD/`).
 - The localhost dashboard binds `127.0.0.1` only.
 
 ## Roster allowlist
