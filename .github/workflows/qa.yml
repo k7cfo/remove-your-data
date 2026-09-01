@@ -26,6 +26,7 @@ jobs:
         run: python -m unittest discover -s tests -v
 
   browser-smoke:
+    # GitHub-hosted runners are disposable VMs; no real identity data is used here.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
