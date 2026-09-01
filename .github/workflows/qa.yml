@@ -63,7 +63,7 @@ jobs:
           done
           grep --quiet "Jane Q. Public" "${RUNNER_TEMP}/report.html"
           grep --quiet "Household roster" "${RUNNER_TEMP}/roster.html"
-          grep --quiet "Household routine" "${RUNNER_TEMP}/settings.html"
+          grep --quiet "Scan routine" "${RUNNER_TEMP}/settings.html"
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
