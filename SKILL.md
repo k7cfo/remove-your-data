@@ -8,7 +8,7 @@ description: >
   GDPR / UK GDPR erasure, take down Spokeo Whitepages Radaris BeenVerified
   TruePeopleSearch listings, stop using Incogni DeleteMe Optery, run a
   recurring privacy takedown, or make data removal anonymous. First run MUST
-  ask intake questions. If they live in California, use CA DROP first.
+  ask intake questions one at a time. If they live in California, use CA DROP first.
 ---
 
 # Remove your data
@@ -68,21 +68,27 @@ python3 scripts/ryd.py add-person --workspace "$WORKSPACE" --name "Alex Public" 
 python3 scripts/ryd.py pack --workspace "$WORKSPACE"
 ```
 
-On first invocation, if the roster is empty, ask **one** questionnaire for the **primary** person, then stop. Prefer sending them to `/roster` to paste the long lists (many aliases, old addresses). Chat is fine for a short set.
+On first invocation, if the roster is empty or the primary has `intake_complete=0`, run **intake 1:1**. Ask **exactly one** question, then **stop** and wait. Do not paste this list. Do not bundle a second question, a menu, or “anything else?” in the same turn. If the answer is unusable, rephrase **that** question once — still nothing else.
 
-Primary person, required:
+Resume the next unanswered item on the next turn. If they volunteer later answers early, store them and skip those numbers; still ask the next gap, one at a time.
+
+Prefer `/roster` only after they have a primary person **or** they ask to paste long lists (many aliases, old addresses). Chat 1:1 for the required set.
+
+Primary person, required, this order:
 
 1. Legal name
-2. **Where they live** (country; US/Canada/Australia: state/province). California → DROP first.
+2. **Where they live** (country; US/Canada/Australia: state/province). California → DROP first, after intake — do not start DROP mid-questionnaire.
 3. Current city / postal. Street if they want address matching.
-4. Phones that show on listings
+4. Phones that show on listings (or “none”)
 5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address.
-6. Cadence (default 7 days)
+6. Cadence (default 7 days if they skip)
 7. Anonymity: `dedicated` / `personal` / `max`
-8. Tools this host already has
-9. Sites to **keep** (`keep_host` / `keep_url` on the roster): LinkedIn, news, personal site, interviews. Never file against these.
+8. Tools this host already has (or “whatever you find”)
+9. Sites to **keep** (`keep_host` / `keep_url`): LinkedIn, news, personal site, interviews — or “defaults”
 
-Then aliases, prior addresses, extra phones. Optional: DOB / MAID / VIN only if DROP or a form needs them.
+Then, still 1:1: aliases, prior addresses, extra phones, family. Optional: DOB / MAID / VIN only if DROP or a form needs them. They may say “skip” or “I’ll use /roster”.
+
+After Q2 you know residency; still finish Q3–Q9 before searching or filing. Write `person` + `identifier` as soon as you have name + residency (so a crashed turn does not lose it). `intake_complete=1` only after Q9. Confirm they are not asking you to impersonate.
 
 Family: add as **another `person` row**, not extra identifiers on the primary. Set `relationship` and `consent_basis`:
 
@@ -93,7 +99,7 @@ Family: add as **another `person` row**, not extra identifiers on the primary. S
 | `authorized_agent` | That adult asked the user to file | yes |
 | `unconfirmed` | Listed but not authorized | **no** |
 
-Write `person` + `identifier` (`scan=1`). `intake_complete=1` on the primary. Confirm they are not asking you to impersonate.
+Family members also get their own 1:1 intake (name, consent, own verify email) — still one question per turn.
 
 On every later run:
 
@@ -364,7 +370,7 @@ Cadence default 168h (weekly). Register a recurring job on **whatever this host 
 Each invocation:
 
 ```text
-if roster empty / primary intake incomplete → section 1
+if roster empty / primary intake incomplete → section 1 (one question, stop)
 read settings (paused, cadence_hours)
 if paused → report paused, stop search/file
 for each person WHERE active=1 AND consent_basis != 'unconfirmed':

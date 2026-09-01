@@ -7,7 +7,7 @@ This is not legal advice.
 ## Boot (do this now)
 
 1. Read [`SKILL.md`](SKILL.md) in full. That is the playbook. Do not improvise a parallel process.
-2. If the roster has no primary person, run **SKILL.md §1** and **stop**. Aliases/addresses/phones/family go in SQLite (`/roster` or `ryd.py add-ident` / `add-person`). Do not search until residency is known.
+2. If the roster has no primary person, run **SKILL.md §1 intake 1:1** and **stop**. One question per turn. Do not dump the questionnaire. Aliases/addresses/phones/family go in SQLite (`/roster` or `ryd.py add-ident` / `add-person`). Do not search until residency is known **and** intake Q9 is done.
 3. If they live in California, **CA DROP first** — one request per roster person.
 4. Put the SQLite workspace **outside this git clone**. Never commit `takedown.db`, evidence, DROP IDs, or listing URLs that identify a real person.
 5. After a pass: `python3 scripts/ryd.py serve --workspace "$WORKSPACE"` (report `/`, roster `/roster`, settings `/settings`). Gear changes cadence/pause; agents use `ryd.py settings` instead of scraping the page.
