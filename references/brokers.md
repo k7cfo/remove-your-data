@@ -8,7 +8,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list �
 
 | Broker | Opt-out | Notes |
 | --- | --- | --- |
-| Whitepages | https://www.whitepages.com/suppression-requests | Often verifies with an automated phone call. Extra profiles per old address. Property Intel: email privacyrequest@. Auto-replies may omit California; reply on the same thread (CCPA/CPRA/Delete Act). |
+| Whitepages | https://www.whitepages.com/suppression-requests | Often verifies with an automated phone call. Extra profiles per old address. Property Intel: email privacyrequest@. Auto-replies may omit California; reply on the same thread (CCPA/CPRA/Delete Act). A same-thread follow-up can mint a new Zendesk number; treat as the same request, do not reply again. |
 | Spokeo | https://www.spokeo.com/optout | Paste profile URL. Keep request id. Consumer inbox; some agent domains rejected. Drop window often 24–48h. |
 | BeenVerified | https://www.beenverified.com/app/optout/search | Email verify. |
 | TruePeopleSearch | https://www.truepeoplesearch.com/removal | Datacenter IP often 403. File FastPeopleSearch too. `truepeoplesearch.net` is a different host; opt-out can be a Google Form that needs a signed-in consumer Google account. |
@@ -28,7 +28,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list �
 | PublicDataUSA | — | **defunct.** No DNS for `publicdatausa.com` (2026-09-01). Distinct from Open Data USA. |
 | PeekYou | https://peekyou.com/about/contact/ccpa_optout/do_not_sell/ | `www.peekyou.com` has no A. 403 from datacenter. Fallback `ccpa@peekyou.com`. |
 | CheckPeople | https://www.checkpeople.com/do-not-sell-info | `support@` can confirm expunge while the public URL lags or stays CF-blocked ~48h. After that, a Google name-index `/name/…` snippet can still show PII while origin is CF. Do not refile. SERP last-step. |
-| National Public Data | https://nationalpublicdata.com/optout.html | Unique `/people/…` URL required. `/optout.html` is Turnstile; datacenter often fails. One try. Fallback `support@nationalpublicdata.com` with the profile URL. Do not file SERP while origin is live. |
+| National Public Data | https://nationalpublicdata.com/optout.html | Unique `/people/…` URL required. `/optout.html` is Turnstile; datacenter often fails. One try. Fallback `support@nationalpublicdata.com` with the profile URL. Vendor confirm can cover unique + name-index; watch 24–72h for reappear. Do not file SERP while leftover origins are still live. |
 | PeopleSmart | https://www.peoplesmart.com/optout | 403 from datacenter. Fallback `privacy@peoplesmart.com`. |
 | SmartBackgroundChecks | https://www.smartbackgroundchecks.com/optout | Email verify. Live 200 on 2026-09-01. |
 | SearchPeopleFree | https://www.searchpeoplefree.com/opt-out | 403 from datacenter. |
