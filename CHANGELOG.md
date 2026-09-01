@@ -30,6 +30,7 @@ First public drop. Agent-first skill + localhost app.
 - Harness fallbacks ([#4](https://github.com/k7cfo/remove-your-data/issues/4)): detect tools, use them, or coach. No Python → `templates/paper-log.md`. Missing browser/mail/scheduler degrades; do not refuse the job.
 - Localhost dashboard restyle ([#3](https://github.com/k7cfo/remove-your-data/issues/3)): knowsuchagency **Nothing** tokens (instrument panel, red interrupt, `light-dark`, theme toggle). Stdlib CSS only.
 - Scheduler ([#2](https://github.com/k7cfo/remove-your-data/issues/2)): detect what this host already uses; recommend one specific re-invoke. Not a catalog of products.
+- `RYD_PREVIEW=1` allows binding off loopback for a Tailscale-only demo. Default remains 127.0.0.1.
 
 ### Changed
 
