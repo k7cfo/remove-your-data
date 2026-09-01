@@ -89,23 +89,36 @@ phonedigitsonly
 "Full Name" site:mylife.com
 "Full Name" site:intelius.com
 "Full Name" site:clustrmaps.com
+"Full Name" site:peekyou.com
+"Full Name" site:peoplesmart.com
+"Full Name" site:smartbackgroundchecks.com
+"Full Name" site:searchpeoplefree.com
+"Full Name" site:peoplesearchnow.com
+"Full Name" site:infotracer.com
+"Full Name" site:socialcatfish.com
+"Full Name" site:contactout.com
+"Full Name" site:checkpeople.com
 ```
 
-Follow hits that show this person **plus** a matching phone, street, or city. Same name in another country/state with no other overlap: skip.
+Follow hits that show this person **plus** a matching phone, street, or city. Same name in another country/state with no other overlap: skip. Skip `keep_host` / `keep_url` on the roster. Default skip: articles, LinkedIn, non-broker coverage.
 
 ## Match → log → file
 
 1. Insert `listing` with URL, `found_via` (engine + query), and `pii_shown`.
 2. Snapshot evidence.
-3. File the **broker opt-out** first (SKILL.md §7).
-4. Recheck the public URL.
-5. If it still ranks on Google (or Bing), run the **index failsafe** below.
+3. File the **broker opt-out** first (SKILL.md §7 file pass).
+4. Recheck the public URL (verify pass). Confirm page is not success.
+5. If it still ranks on Google (or Bing) **and the source URL is down**, run the **index failsafe** below.
 
 Reverse-phone teasers that hide the name behind a paywall: leftover, unless an official removal form accepts that URL.
 
+## New-host watch
+
+On each search pass, collect people-search / data-broker **hostnames** from hits that match this person. Diff against `$WORKSPACE/exports/serp-hosts.txt` (create on first pass). Alert when name+city/phone/street shows up on a **new** host. Append the new hosts. Do not file SERP hides against allowlisted hosts. Engine removal stays last-step.
+
 ## Index failsafe — Google Results about you
 
-This does **not** delete the broker page. It asks Google to **stop showing** a result (or stop showing it for name queries). Source can stay live. That is why it is last, after the free opt-out.
+This does **not** delete the broker page. It asks Google to **stop showing** a result (or stop showing it for name queries). Source can stay live. That is why it is last, after the free opt-out, and **only after the source listing is 404/410/gone**. Stale snippets after a parked origin are expected.
 
 Official:
 

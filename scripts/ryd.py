@@ -19,6 +19,8 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 SCHEMA = Path(__file__).resolve().parent / "schema.sql"
+REPO = SCHEMA.parent.parent
+DEAD_URLS = REPO / "references" / "dead-urls.md"
 STATUSES = (
     "found",
     "filed",
@@ -41,8 +43,11 @@ IDENT_KINDS = (
     "dob",
     "maid",
     "vin",
+    "keep_host",
+    "keep_url",
     "other",
 )
+KEEP_KINDS = frozenset({"keep_host", "keep_url"})
 MAX_PEOPLE = 12
 MAX_IDENTS = 40
 SETTINGS_DEFAULTS = {
@@ -111,6 +116,53 @@ def ensure_column(con: sqlite3.Connection, table: str, name: str, spec: str) -> 
         con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {spec}")
 
 
+def schema_create_table(sql: str, name: str) -> str:
+    token = f"CREATE TABLE IF NOT EXISTS {name} ("
+    start = sql.find(token)
+    if start < 0:
+        raise RuntimeError(f"schema missing {name}")
+    depth = 0
+    for i, ch in enumerate(sql[start:], start):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                stmt = sql[start : i + 1]
+                return stmt.replace("CREATE TABLE IF NOT EXISTS", "CREATE TABLE", 1)
+    raise RuntimeError(f"unclosed CREATE TABLE {name}")
+
+
+def rebuild_clock_kinds(con: sqlite3.Connection, sql: str) -> None:
+    row = con.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='clock'"
+    ).fetchone()
+    current = (row[0] if row else "") or ""
+    if "relist_90d" in current:
+        return
+    con.execute("ALTER TABLE clock RENAME TO clock_rebuild")
+    con.execute(schema_create_table(sql, "clock"))
+    con.execute("INSERT INTO clock SELECT * FROM clock_rebuild")
+    con.execute("DROP TABLE clock_rebuild")
+
+
+def load_dead_urls() -> list[tuple[str, str]]:
+    if not DEAD_URLS.exists():
+        return []
+    rows: list[tuple[str, str]] = []
+    for line in DEAD_URLS.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cols = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cols) < 2:
+            continue
+        key = cols[0].strip().strip("`")
+        if not key or key.lower().startswith("url") or set(key) <= set("-: "):
+            continue
+        rows.append((key, cols[1]))
+    return rows
+
+
 def migrate(con: sqlite3.Connection) -> None:
     sql = SCHEMA.read_text(encoding="utf-8")
     con.executescript(sql)
@@ -129,6 +181,8 @@ def migrate(con: sqlite3.Connection) -> None:
         ensure_column(con, "person", "drop_filed", "INTEGER NOT NULL DEFAULT 0")
     if "identifier" in tables:
         ensure_column(con, "identifier", "scan", "INTEGER NOT NULL DEFAULT 1")
+    if "clock" in tables:
+        rebuild_clock_kinds(con, sql)
     con.execute("DROP VIEW IF EXISTS v_evidence_chronology")
     con.execute("DROP VIEW IF EXISTS v_open_clocks")
     con.executescript(sql)
@@ -141,6 +195,7 @@ def migrate(con: sqlite3.Connection) -> None:
             "WHERE COALESCE(relationship, 'self') = 'self' AND drop_filed = 0"
         )
     con.commit()
+
 
 def get_settings(con: sqlite3.Connection) -> dict[str, str]:
     rows = {
@@ -257,6 +312,13 @@ def seed_demo(con: sqlite3.Connection) -> None:
             (pid, "phone", "916-555-0142", "9165550142"),
             (pid, "email", "jane.demo@example.com", "jane.demo@example.com"),
         ],
+    )
+    con.execute(
+        """
+        INSERT INTO identifier (person_id, kind, value, normalized, scan)
+        VALUES (?, 'keep_host', 'linkedin.com', 'linkedin.com', 0)
+        """,
+        (pid,),
     )
     con.execute(
         """
@@ -411,6 +473,17 @@ def seed_demo(con: sqlite3.Connection) -> None:
                 "open",
                 None,
             ),
+            (
+                pid,
+                wp,
+                brokers["Whitepages"],
+                "relist_90d",
+                "broker re-scrape ~90d",
+                started,
+                utc_iso(now + timedelta(days=88)),
+                "open",
+                "Public URL gone; re-search on clock",
+            ),
         ],
     )
     con.executemany(
@@ -511,6 +584,18 @@ def normalize_ident(kind: str, value: str) -> str:
         return "".join(c for c in text if c.isdigit())
     if kind == "email":
         return text.lower()
+    if kind in KEEP_KINDS:
+        raw = text.lower()
+        if "://" in raw or kind == "keep_url":
+            parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+            if kind == "keep_url":
+                return (parsed.geturl() if "://" in raw else raw).rstrip("/")
+            host = (parsed.hostname or raw).lower()
+        else:
+            host = raw.split("/")[0]
+        if host.startswith("www."):
+            host = host[4:]
+        return host
     return text.lower()
 
 
@@ -537,9 +622,12 @@ def list_idents(con: sqlite3.Connection, person_id: int) -> list[dict[str, Any]]
 def scan_pack(idents: list[dict[str, Any]]) -> list[str]:
     names, cities, streets, phones = [], [], [], []
     for row in idents:
+        kind = row["kind"]
+        if kind in KEEP_KINDS:
+            continue
         if not row.get("scan", 1):
             continue
-        kind, value = row["kind"], row["value"]
+        value = row["value"]
         if kind in ("name", "alias"):
             names.append(value)
         elif kind == "city":
@@ -581,6 +669,15 @@ def scan_pack(idents: list[dict[str, Any]]) -> list[str]:
             "mylife.com",
             "intelius.com",
             "clustrmaps.com",
+            "peekyou.com",
+            "peoplesmart.com",
+            "smartbackgroundchecks.com",
+            "searchpeoplefree.com",
+            "peoplesearchnow.com",
+            "infotracer.com",
+            "socialcatfish.com",
+            "contactout.com",
+            "checkpeople.com",
         ):
             add(f'"{name}" site:{site}')
     for phone in phones:
@@ -1112,7 +1209,8 @@ def add_identifier(con: sqlite3.Connection, person_id: int, kind: str, value: st
     if not value:
         raise ValueError("Identifier value required.")
     n = con.execute(
-        "SELECT COUNT(*) FROM identifier WHERE person_id = ?", (person_id,)
+        "SELECT COUNT(*) FROM identifier WHERE person_id = ?",
+        (person_id,),
     ).fetchone()[0]
     if n >= MAX_IDENTS:
         raise ValueError("Cap is 40 identifiers per person.")
@@ -1125,14 +1223,15 @@ def add_identifier(con: sqlite3.Connection, person_id: int, kind: str, value: st
             (norm,),
         ).fetchone()
         if taken and int(taken[0]) != person_id:
-            raise ValueError("That email is already used by someone in this household. Brokers treat one address as one person.")
+            raise ValueError("That verify email is already on another roster person.")
+    scan = 0 if kind in KEEP_KINDS else 1
     try:
         con.execute(
             """
             INSERT INTO identifier (person_id, kind, value, normalized, scan)
-            VALUES (?, ?, ?, ?, 1)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (person_id, kind, value, norm),
+            (person_id, kind, value, norm, scan),
         )
     except sqlite3.IntegrityError as exc:
         raise ValueError("Already on this person.") from exc
@@ -1303,7 +1402,7 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
   {who}
   <p class="eyebrow">Household roster</p>
   <h1>{escape(name)}</h1>
-  <p class="sub">Aliases, addresses, and phones here drive the search pack. Each family member is a separate legal person: own DROP, own verify email, own listings.</p>
+  <p class="sub">Aliases, addresses, and phones here drive the search pack. <code>keep_host</code> / <code>keep_url</code> are allowlist — never file opt-outs or SERP hides against them. Each family member is a separate legal person: own DROP, own verify email, own listings.</p>
   {flash_html}{consent_note}
   <form method="post" action="/roster" class="panel form-row">
     <input type="hidden" name="action" value="set_consent">
@@ -1319,7 +1418,7 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
     <input type="hidden" name="action" value="add_ident">
     <input type="hidden" name="person_id" value="{pid}">
     <label>Kind <select name="kind">{kind_opts}</select></label>
-    <label class="grow">Value <input name="value" required maxlength="200" placeholder="alias, street, phone, email"></label>
+    <label class="grow">Value <input name="value" required maxlength="200" placeholder="alias, street, phone, email, keep host"></label>
     <button type="submit">Add</button>
   </form>
   <h2>Add family member</h2>
@@ -1473,6 +1572,8 @@ def cmd_pack(args: argparse.Namespace) -> int:
         if settings.get("paused") in ("1", "true", "yes"):
             print("# paused=1 — unpause with: ryd.py settings --paused 0", file=sys.stderr)
             return 0
+        for key, _how in load_dead_urls():
+            print(f"# dead-url skip {key}")
         people = list_people(con)
         targets = people
         if args.person_id:
@@ -1484,7 +1585,11 @@ def cmd_pack(args: argparse.Namespace) -> int:
                 print(f"# skip {person['legal_name']} (unconfirmed consent)", file=sys.stderr)
                 continue
             print(f"# {person['id']} {person['legal_name']} ({person.get('relationship')})")
-            for q in scan_pack(list_idents(con, person["id"])):
+            idents = list_idents(con, person["id"])
+            for row in idents:
+                if row["kind"] in KEEP_KINDS:
+                    print(f"# keep {row['kind']} {row['value']}")
+            for q in scan_pack(idents):
                 print(q)
     return 0
 
