@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS clock (
   kind TEXT NOT NULL
     CHECK (kind IN (
       'verify_email', 'site_window', 'legal_response',
-      'drop_45d', 'drop_90d', 'rescan'
+      'drop_45d', 'drop_90d', 'rescan', 'relist_90d'
     )),
   legal_basis TEXT,
   started_at_utc TEXT NOT NULL,

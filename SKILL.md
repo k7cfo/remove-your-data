@@ -51,6 +51,8 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 - Do not promise a listing is gone because a confirm page said so. Recheck the public URL.
 - Do not store PII in this git clone.
 - Do not recommend paying Incogni / DeleteMe / Optery / similar.
+- Do not file opt-outs or SERP hides against roster `keep_host` / `keep_url` (LinkedIn, news, personal site, interviews). Default: skip articles, LinkedIn, and other non-broker coverage even without roster rows.
+- Do not loop hosts in `references/dead-urls.md`. Load `STATUS.md` with the queue. `defunct` = skip.
 - One clean filing plus verify per listing. Recheck later instead of spamming the form.
 
 ## 1. Roster — source of truth
@@ -78,6 +80,7 @@ Primary person, required:
 6. Cadence (default 7 days)
 7. Anonymity: `dedicated` / `personal` / `max`
 8. Tools this host already has
+9. Sites to **keep** (`keep_host` / `keep_url` on the roster): LinkedIn, news, personal site, interviews. Never file against these.
 
 Then aliases, prior addresses, extra phones. Optional: DOB / MAID / VIN only if DROP or a form needs them.
 
@@ -154,7 +157,7 @@ On every real action insert `action_log` with:
 - broker, listing URL, action, channel, request ID, result
 - path to evidence file
 
-After each filing, insert or refresh a `clock` row (verify email, site drop window, legal response, DROP 45/90).
+After each filing, insert or refresh a `clock` row (verify email, site drop window, legal response, DROP 45/90). When a listing becomes `gone`, insert `relist_90d` (~90 days). Closed is not forever.
 
 Export when asked, or before escalation:
 
@@ -250,29 +253,37 @@ Preference (use what exists, skip the rest):
 
 When a URL matches this person (same phone, street, or city): insert `listing` **before** filing.
 
-After opt-outs, leftovers that still **rank on Google** go to §7a (Results about you). That is hide-from-index, not delete-at-source.
+After opt-outs, leftovers that still **rank on Google** go to §7a only after the source URL is down. That is hide-from-index, not delete-at-source.
 
-## 7. File free opt-outs
+## 7. File pass vs verify pass
+
+Two named passes. Do not collapse them.
+
+**File** = official opt-out + verify email/call. Snapshot the public page first. Save request ID. Complete verify. Insert `clock` for the site's stated window (else 7 days, then the legal clock). One clean filing plus verify per listing. Recheck later instead of spamming the form.
+
+**Verify** = re-fetch the **exact** public listing URL after the stated window. Confirm-page text is not success. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Curl Cloudflare and a browser fetch can disagree — do not mark drop from one transport. Hourly CF after a recent live reading is opacity, not a drop.
+
+Closed only when the exact URL is gone **or** the identifier is gone from it. Then start `relist_90d`.
 
 Official form only. Prefer email-verify flows you can complete. Solve captchas if they authorized that.
 
-Load `references/brokers.md` and treat it as a **queue**, not gospel. Opt-out URLs rot — verify the live privacy /opt-out page before submitting. Send URL fixes upstream.
+Load `references/brokers.md` as a **queue**, `STATUS.md` as status, `references/dead-urls.md` as skip-without-loop. Opt-out URLs rot — verify the live privacy /opt-out page before submitting. `defunct` / dead-url rows: skip. Send URL fixes upstream.
 
 Priority order:
 
-1. Listings already ranking for their name (from the search pass).
-2. High-visibility public sites: Whitepages, Spokeo, BeenVerified, TruePeopleSearch, FastPeopleSearch, Radaris, Open Data USA.
+1. Listings already ranking for their name (from the search pass), except allowlisted hosts.
+2. High-visibility public sites: Whitepages, Spokeo, BeenVerified, TruePeopleSearch, FastPeopleSearch, Radaris. Skip Open Data USA (origin parked).
 3. PeopleConnect suppression center once — covers Intelius, TruthFinder, Instant Checkmate, US Search.
-4. Upstream wholesalers (Acxiom, LexisNexis people-search opt-out) even if they do not rank.
-5. Everything else in `references/brokers.md` that matched.
+4. Upstream wholesalers (HubSpot/Clearbit commercial dataset, LexisNexis people-search opt-out, Acxiom if they can pass identity-gate) even if they do not rank.
+5. Everything else in `references/brokers.md` whose STATUS is not `defunct` that matched.
 
-Per listing:
+Per listing (file pass, then later verify pass):
 
 1. Snapshot the public page (screenshot + URL + what PII is shown).
 2. File the official opt-out. Save request ID / tracking UUID.
 3. Complete email or phone verify.
 4. Insert `clock` for the site's stated window (Spokeo often 24–48h; otherwise 7 days, then the legal clock).
-5. Recheck the **exact** listing URL. 404 / "we couldn't find this profile" = success. Property and reverse-phone URLs that still tease the household are separate rows.
+5. **Verify pass:** recheck the **exact** listing URL. 404 / "we couldn't find this profile" = success. Property and reverse-phone URLs that still tease the household are separate rows.
 
 Site notes that keep biting:
 
@@ -287,13 +298,15 @@ Site notes that keep biting:
 - **National Public Data** — unique people URLs under `/people/…`. Official `/optout.html` is Turnstile; datacenter checkbox often never ticks (one attempt, do not loop). Footer “Do Not Sell My Info” is the same page. Fallback: `support@nationalpublicdata.com` with the live unique profile URL from a consumer inbox. SENT-only until origin 404s or they reply. Do not file SERP while origin is live.
 - **MyLife** — privacy Jotforms can disappear. Do not send ID alone. A 410 can still SERP; a dropped page can reappear in Bing/Yahoo. Recheck the live URL before treating it as back.
 
-If a site has no form: send `templates/erasure-request.md` to the privacy contact, start a legal clock, log the message-id.
+If a site has no form: send `templates/erasure-request.md` to the privacy contact, start a legal clock, log the message-id. After the legal clock with the leftover still live: `templates/regulator-complaint.md`. Do not auto-send.
+
+Refresh `references/brokers.md` from the live California data-broker registry CSV with `python3 scripts/registry_pull.py` (Vermont/Oregon/Texas when a bulk file exists). Dedup by hostname against this queue. DROP still covers registered CA brokers for CA residents. Public people-search pages are still filed one-by-one. **Do not POST a generic form to every registry row.**
 
 ## 7a. Index failsafe (last)
 
-Broker opt-out first. If the public URL is still live **or** a 404 source still **ranks on Google**, hide the SERP snippet. This does not delete the source. Full steps: `references/search.md` (Index failsafe).
+Broker opt-out first. Do **not** file Google/Bing/Yahoo/DDG removals until the **source listing** is down (404/410/gone). Stale snippets after a parked/404 origin are expected. If the public URL is still live **or** a 404 source still **ranks on Google**, hide the SERP snippet only after leftovers at the source are gone. This does not delete the source. Full steps: `references/search.md` (Index failsafe).
 
-Google — [Results about you](https://myactivity.google.com/results-about-you) / [how-to](https://support.google.com/websearch/answer/12719076):
+On each search pass, diff broker/people-search **hostnames** against `$WORKSPACE/exports/serp-hosts.txt` (create on first pass). Alert when the person's name+city/phone/street shows up on a **new** people-search host. Update the snapshot. Do not file against `keep_host` / `keep_url`.
 
 1. **SERP click** (what shows next to a listing): their Google account, search the leftover, **More ⋮ → About this result → Remove result → personal info / Contact info**. Match the name and address/phone **as shown**.
 2. **Results about you**: same account, enter roster name/aliases/phones/addresses, review hits, Request to remove. Optional notifications for new leaks.
@@ -357,16 +370,17 @@ if paused → report paused, stop search/file
 for each person WHERE active=1 AND consent_basis != 'unconfirmed':
   process that person's due clocks (overdue first)
   check that person's mailbox for verify / OTP
-  recheck that person's listing URLs whose window elapsed
-  if scan is due → ryd.py pack --person-id N → search pack (section 6)
-  file new matches onto that person_id (section 7)
-  leftovers still in Google SERP → §7a Results about you / ⋮ Remove result
+  recheck that person's listing URLs whose window elapsed (**verify pass**)
+  if scan is due → ryd.py pack --person-id N → search pack (section 6); diff serp-hosts.txt
+  file new matches onto that person_id (**file pass**, section 7); skip keep_* and dead-urls
+  leftovers still in Google SERP → §7a only after source URL is down
   CA: if that person's DROP status due → check DROP; set person.drop_filed
 skip unconfirmed family (visible on /roster only)
 export evidence if anything changed
 refresh dashboard (`ryd.py export` and/or keep `ryd.py serve` running)
 report per person: gone / pending / leftover / overdue
 ```
+
 
 Clock kinds:
 
@@ -378,23 +392,26 @@ Clock kinds:
 | `drop_45d` | after DROP submit | every 45d |
 | `drop_90d` | after DROP submit | once at 90d |
 | `rescan` | always | `cadence_hours` |
+| `relist_90d` | listing status `gone` | ~90 days; brokers re-scrape |
 
-A listing becomes `gone` only when the exact URL no longer shows the identifier. Verified filing + still visible after the window → `leftover`. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Curl Cloudflare and a browser fetch can disagree — do not mark drop from one transport. Hourly CF after a recent live reading is opacity, not a drop. Count people / property / reverse-phone URLs, not bare directory landings. Closed is not forever; many brokers re-list inside ~90 days.
+A listing becomes `gone` only when the exact URL no longer shows the identifier (**verify pass**). Confirm page is not success. Verified filing + still visible after the window → `leftover`. Origin TLS/timeout/500 is not a drop if search snippets still show the identifier. Curl Cloudflare and a browser fetch can disagree — do not mark drop from one transport. Hourly CF after a recent live reading is opacity, not a drop. Count people / property / reverse-phone URLs, not bare directory landings. Closed is not forever; many brokers re-list inside ~90 days — that is `relist_90d`, not a reason to refile during the window.
 
 Escalation, unless they say otherwise:
 
-1. Official free path through the stated window
-2. Google Results about you / SERP Remove result (§7a), then Bing if it still ranks
-3. Written erasure request (`templates/erasure-request.md`) with the leftovers file
-4. State AG / DPA complaint, or attorney, using `exports/evidence-log.csv`
+1. Official free path through the stated window (**file pass**)
+2. **Verify pass** on the exact URL
+3. Google Results about you / SERP Remove result (§7a), then Bing if it still ranks — only after the source listing is down
+4. Written erasure request (`templates/erasure-request.md`) with the leftovers file
+5. Regulator / attorney complaint (`templates/regulator-complaint.md`) using `exports/evidence-log.csv`. Do not auto-send.
 
 ## 10. Household vs same name
 
 - Roster family with consent: file. One legal person per DROP and per one-email-per-person broker.
 - Same street / same phone on a card that names a consented roster person: file that person. Household option only if the site has it.
 - Same name, other region, no matching phone or street: leave it.
-- Professional / SoS / LinkedIn cards: file if the card reprints a **home** phone or **home** address. Skip generic company pages.
+- Professional / SoS / LinkedIn cards: file if the card reprints a **home** phone or **home** address **and** the host is not allowlisted. Skip generic company pages, articles, LinkedIn by default.
 - `unconfirmed` family members: show on `/roster`, do not search or file.
+- `keep_host` / `keep_url`: never search-to-file, never SERP-hide.
 
 ## 11. Done (one pass)
 
@@ -403,8 +420,8 @@ A pass is done when:
 - Roster has the primary person (and any consented family) with scan identifiers in SQLite.
 - `ryd.py export` snapshot is current, or `ryd.py serve` is running on loopback (`/roster` is the editor).
 - Each CA resident on the roster: DROP submitted and logged on **that** person, or they refused in the log.
-- Every found public listing for consented people is gone, pending inside its window, blocked with a leftover, or leftover with a next step.
-- Leftovers that still rank on Google have a Results-about-you / SERP removal logged, or they refused that failsafe.
+- Every found public listing for consented people is gone, pending inside its window, blocked with a leftover, or leftover with a next step. Allowlisted hosts were skipped.
+- Leftovers that still rank on Google have a Results-about-you / SERP removal logged **after** the source URL is down, or they refused that failsafe.
 - Evidence log is current.
 - Recurring job is registered, or they have the next due date.
 - No paid removal service was purchased.

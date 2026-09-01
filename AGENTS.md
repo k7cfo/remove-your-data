@@ -35,13 +35,18 @@ Use whatever this host already has. Do not install software they did not ask for
 
 | Path | What |
 | --- | --- |
-| `SKILL.md` | Playbook |
+| `SKILL.md` | Playbook (file pass vs verify pass) |
+| `STATUS.md` | Broker opt-out status: verified / untested / defunct |
 | `references/brokers.md` | Opt-out queue (verify live URLs) |
+| `references/dead-urls.md` | Skip without looping; `ryd.py pack` prints these |
 | `references/jurisdictions.md` | Legal clocks |
-| `references/search.md` | Query pack |
+| `references/search.md` | Query pack + SERP new-host watch |
 | `templates/erasure-request.md` | Letter when there is no form |
-| `scripts/schema.sql` | Legal log schema |
+| `templates/regulator-complaint.md` | After the legal clock; do not auto-send |
+| `docs/PRIVACY.md` | What leaves the machine |
+| `scripts/schema.sql` | Legal log schema (`relist_90d`, roster `keep_host` / `keep_url`) |
 | `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` |
+| `scripts/registry_pull.py` | CA registry CSV hostname diff — not a spray list |
 | `CONTRIBUTING.md` | How to PR |
 | `CHANGELOG.md` | What shipped |
 

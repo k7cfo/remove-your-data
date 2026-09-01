@@ -23,6 +23,8 @@ You certify the contribution is yours to give, or that you have the right to sub
 High value:
 
 - `references/brokers.md` — official opt-out URLs that still work, new brokers, PeopleConnect-style family mappings
+- `STATUS.md` — `verified` / `untested` / `defunct` against the current form
+- `references/dead-urls.md` — 404 / 410 / null-MX / parked paths agents must skip
 - `references/jurisdictions.md` — clocks and portals, with a link to the official page
 - `SKILL.md` — agent steps that failed in production (mailbox rejects, Turnstile, quoted-printable tokens)
 - `references/search.md` — query packs and engine quirks

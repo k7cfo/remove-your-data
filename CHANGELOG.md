@@ -23,6 +23,10 @@ First public drop. Agent-first skill + localhost app.
 
 ## Unreleased
 
+### Added
+
+- Playbook upgrades ([#1](https://github.com/k7cfo/remove-your-data/issues/1)): `STATUS.md` (verified / untested / defunct), `references/dead-urls.md` (loaded by `ryd.py pack`), named **file** vs **verify** pass, `relist_90d` clock, roster allowlist (`keep_host` / `keep_url`), `docs/PRIVACY.md`, `scripts/registry_pull.py` (hostname diff, no spray), `templates/regulator-complaint.md`, SERP new-host watch (`exports/serp-hosts.txt`). Queue gaps confirmed live where the form answered 200 (SmartBackgroundChecks, InfoTracer, SocialCatfish); PeekYou / PeopleSmart / SearchPeopleFree / PeopleSearchNow listed `untested` (datacenter 403); PublicDataUSA and Open Data USA origin marked `defunct`. Clearbit opt-out 404 → HubSpot privacy preferences.
+
 ### Changed
 
 - Field notes: ContactOut Turnstile + `support@` fallback; TruePeopleSearch `.net` Google Form needs a signed-in consumer Google; Spokeo empty `/optout` → `privacy@`; Open Data USA null-MX / leftover vehicle cards / letter after the contact window / parked origin cancels the letter (confirm via browser + RDAP); origin timeout is not a drop; PeopleConnect name-index teasers can go quiet then resurface; curl CF vs browser can disagree; hourly CF after a live reading is opacity; Radaris city-only skip; ~90-day re-list clock; Whitepages Zendesk auto-ack may omit California (reply on the same thread); CheckPeople written expunge vs ~48h CF lag, then Google name-index can still snippet PII while origin is CF (do not refile); MyLife 410 can still SERP; National Public Data `/optout.html` Turnstile + `support@` fallback.
