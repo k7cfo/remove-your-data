@@ -1739,7 +1739,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"not found\n", "text/plain; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.client_address[0] not in ("127.0.0.1", "::1"):
+        if not preview_mode() and self.client_address[0] not in ("127.0.0.1", "::1"):
             self._send(403, b"loopback only\n", "text/plain; charset=utf-8")
             return
         parsed = urlparse(self.path)
@@ -1773,13 +1773,23 @@ class Handler(BaseHTTPRequestHandler):
         self._redirect(dest)
 
 
+def preview_mode() -> bool:
+    return os.environ.get("RYD_PREVIEW", "").strip().lower() in ("1", "true", "yes")
+
+
 def serve(db: Path, host: str, port: int) -> None:
-    if host not in ("127.0.0.1", "localhost", "::1"):
+    loopback = host in ("127.0.0.1", "localhost", "::1")
+    if not loopback and not preview_mode():
         print(
             "Refusing to bind a PII dashboard off loopback. Use 127.0.0.1.",
             file=sys.stderr,
         )
         sys.exit(2)
+    if not loopback:
+        print(
+            "RYD_PREVIEW=1: binding off loopback. Publish only on Tailscale.",
+            file=sys.stderr,
+        )
     Handler.db_path = db
     httpd = ThreadingHTTPServer((host, port), Handler)
     print(f"Dashboard http://{host}:{port}/  (db {db})", file=sys.stderr)
