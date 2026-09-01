@@ -242,14 +242,15 @@ def parse_cadence(raw: str) -> int:
     }
     if text in aliases:
         return aliases[text]
+    hours: int | None = None
     if text.endswith("d") and text[:-1].isdigit():
-        return int(text[:-1]) * 24
-    if text.endswith("h") and text[:-1].isdigit():
-        return int(text[:-1])
-    if text.isdigit():
+        hours = int(text[:-1]) * 24
+    elif text.endswith("h") and text[:-1].isdigit():
+        hours = int(text[:-1])
+    elif text.isdigit():
         hours = int(text)
-        if 1 <= hours <= 24 * 365:
-            return hours
+    if hours is not None and 1 <= hours <= 24 * 365:
+        return hours
     raise ValueError("Cadence must be like 7d, 24h, or an hour count.")
 
 
@@ -287,14 +288,17 @@ def apply_settings(con: sqlite3.Connection, fields: dict[str, str]) -> None:
 
 
 def init_workspace(workspace: Path) -> Path:
+    resolved = workspace.resolve()
+    if resolved == REPO or REPO in resolved.parents:
+        raise ValueError("Workspace must be outside this git clone.")
     workspace.mkdir(parents=True, exist_ok=True)
+    os.chmod(workspace, stat.S_IRWXU)
     (workspace / "evidence").mkdir(exist_ok=True)
     (workspace / "exports").mkdir(exist_ok=True)
     db = workspace / "takedown.db"
     with sqlite3.connect(db) as con:
         con.row_factory = sqlite3.Row
         migrate(con)
-    os.chmod(workspace, stat.S_IRWXU)
     os.chmod(db, stat.S_IRUSR | stat.S_IWUSR)
     return db
 
@@ -680,7 +684,6 @@ def scan_pack(idents: list[dict[str, Any]]) -> list[str]:
             "truepeoplesearch.com",
             "fastpeoplesearch.com",
             "beenverified.com",
-            "opendatausa.com",
             "peoplefinders.com",
             "nuwber.com",
             "thatsthem.com",
@@ -828,11 +831,6 @@ def load_report(
             )
         ]
     drop_filed = bool(person and person.get("drop_filed"))
-    if not drop_filed:
-        cfg = con.execute(
-            "SELECT value FROM config WHERE key = 'drop_filed'"
-        ).fetchone()
-        drop_filed = bool(cfg and cfg["value"] not in ("0", ""))
     next_due = None
     for clock in open_clocks:
         due = parse_utc(clock["due_at_utc"])
@@ -888,12 +886,17 @@ def cell(value: Any, url: bool = False) -> str:
     if value is None or value == "":
         return "<td class='empty'>—</td>"
     text = str(value)
-    if url and text.startswith("http"):
+    if url and safe_http_url(text):
         return (
-            f'<td><a href="{escape(text, quote=True)}" rel="noreferrer">'
+            f'<td><a href="{escape(text, quote=True)}" rel="noreferrer noopener">'
             f"{escape(text)}</a></td>"
         )
     return f"<td>{escape(text)}</td>"
+
+
+def safe_http_url(value: str) -> bool:
+    parsed = urlparse(value.strip())
+    return parsed.scheme.lower() in ("http", "https") and bool(parsed.hostname)
 
 
 def table(headers: list[str], rows: list[list[str]]) -> str:
@@ -956,12 +959,18 @@ def listing_cards(rows: list[dict[str, Any]]) -> str:
         meta = " · ".join(
             part for part in (row.get("pii_shown"), row.get("request_id")) if part
         )
-        href = escape(url, quote=True)
+        if safe_http_url(url):
+            url_html = (
+                f'<a class="item-url" href="{escape(url, quote=True)}" '
+                f'rel="noreferrer noopener">{escape(url)}</a>'
+            )
+        else:
+            url_html = f'<span class="item-url">{escape(url)}</span>'
         bits.append(
             f'<article class="item {escape(status)}">'
             f'<span class="rail"></span><div class="item-body">'
             f'<div class="item-head"><strong>{broker}</strong>{pill(status)}</div>'
-            f'<a class="item-url" href="{href}">{escape(url)}</a>'
+            f'{url_html}'
             f'<div class="item-meta">{escape(meta) if meta else " "}</div>'
             f"</div></article>"
         )
@@ -1202,7 +1211,14 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
 """
 
 
-def render_csv(report: dict[str, Any]) -> str:
+def spreadsheet_safe(value: Any) -> str:
+    text = "" if value is None else str(value)
+    if text.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+def render_evidence_csv(con: sqlite3.Connection, person_id: int | None = None) -> str:
     fields = [
         "occurred_at_utc",
         "occurred_at_local",
@@ -1216,12 +1232,41 @@ def render_csv(report: dict[str, Any]) -> str:
         "result",
         "evidence_path",
     ]
+    sql = "SELECT " + ", ".join(fields) + " FROM v_evidence_chronology"
+    args: tuple[Any, ...] = ()
+    if person_id is not None:
+        sql += " WHERE person_id = ?"
+        args = (person_id,)
+    sql += " ORDER BY occurred_at_utc ASC, action_log_id ASC"
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(fields)
-    for row in reversed(report["log"]):
-        writer.writerow([row.get(k) or "" for k in fields])
+    for row in con.execute(sql, args):
+        writer.writerow([spreadsheet_safe(row[key]) for key in fields])
     return buf.getvalue()
+
+
+def refresh_family_intake(con: sqlite3.Connection, person_id: int) -> None:
+    person = con.execute(
+        "SELECT relationship, consent_basis FROM person WHERE id = ?",
+        (person_id,),
+    ).fetchone()
+    if not person or person["relationship"] == "self":
+        return
+    has_email = bool(
+        con.execute(
+            "SELECT 1 FROM identifier WHERE person_id = ? AND kind = 'email' LIMIT 1",
+            (person_id,),
+        ).fetchone()
+    )
+    complete = int(
+        has_email
+        and person["consent_basis"] in ("parent_of_minor", "authorized_agent")
+    )
+    con.execute(
+        "UPDATE person SET intake_complete = ? WHERE id = ?",
+        (complete, person_id),
+    )
 
 
 def add_identifier(con: sqlite3.Connection, person_id: int, kind: str, value: str) -> None:
@@ -1256,6 +1301,8 @@ def add_identifier(con: sqlite3.Connection, person_id: int, kind: str, value: st
         )
     except sqlite3.IntegrityError as exc:
         raise ValueError("Already on this person.") from exc
+    if kind == "email":
+        refresh_family_intake(con, person_id)
 
 
 def add_family_member(con: sqlite3.Connection, fields: dict[str, str]) -> int:
@@ -1271,8 +1318,6 @@ def add_family_member(con: sqlite3.Connection, fields: dict[str, str]) -> int:
     consent = fields.get("consent_basis", "unconfirmed")
     if consent not in CONSENT or consent == "self":
         consent = "unconfirmed"
-    if rel == "child" and consent == "unconfirmed":
-        consent = "parent_of_minor"
     primary = con.execute(
         "SELECT * FROM person WHERE relationship = 'self' ORDER BY id LIMIT 1"
     ).fetchone()
@@ -1287,7 +1332,7 @@ def add_family_member(con: sqlite3.Connection, fields: dict[str, str]) -> int:
           legal_name, residency_country, residency_region, timezone,
           cadence_hours, anonymity_mode, household_scope, relationship,
           consent_basis, active, drop_filed, intake_complete, created_at_utc
-        ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 0, 1, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 0, 0, ?)
         """,
         (name, country, region, tz, cadence, anon, rel, consent, utc_iso()),
     )
@@ -1308,6 +1353,8 @@ def apply_roster_post(con: sqlite3.Connection, fields: dict[str, str]) -> str:
             "SELECT person_id FROM identifier WHERE id = ?", (iid,)
         ).fetchone()
         con.execute("DELETE FROM identifier WHERE id = ?", (iid,))
+        if row:
+            refresh_family_intake(con, int(row["person_id"]))
         return f"/roster?p={row['person_id']}" if row else "/roster"
     if action == "toggle_scan":
         iid = int(fields.get("ident_id", "0"))
@@ -1335,6 +1382,7 @@ def apply_roster_post(con: sqlite3.Connection, fields: dict[str, str]) -> str:
         con.execute(
             "UPDATE person SET consent_basis = ? WHERE id = ?", (consent, pid)
         )
+        refresh_family_intake(con, pid)
         return f"/roster?p={pid}"
     raise ValueError("Unknown roster action.")
 
@@ -1600,6 +1648,12 @@ def cmd_pack(args: argparse.Namespace) -> int:
         for key, _how in load_dead_urls():
             print(f"# dead-url skip {key}")
         people = list_people(con)
+        primary = next(
+            (p for p in people if p.get("relationship") == "self"), None
+        )
+        if primary is None or not primary.get("intake_complete", 0):
+            print("# refusing search pack: primary intake is incomplete", file=sys.stderr)
+            return 1
         targets = people
         if args.person_id:
             targets = [p for p in people if p["id"] == args.person_id]
@@ -1608,6 +1662,9 @@ def cmd_pack(args: argparse.Namespace) -> int:
                 continue
             if person.get("consent_basis") == "unconfirmed":
                 print(f"# skip {person['legal_name']} (unconfirmed consent)", file=sys.stderr)
+                continue
+            if not person.get("intake_complete", 0):
+                print(f"# skip {person['legal_name']} (intake incomplete)", file=sys.stderr)
                 continue
             print(f"# {person['id']} {person['legal_name']} ({person.get('relationship')})")
             idents = list_idents(con, person["id"])
@@ -1661,12 +1718,58 @@ def report_from_db(db: Path, person_id: int | None = None) -> dict[str, Any]:
         return load_report(con, person_id)
 
 
+def write_private_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8", newline="") as stream:
+        stream.write(content)
+    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+
+
 def read_post(handler: BaseHTTPRequestHandler) -> dict[str, str]:
-    length = int(handler.headers.get("Content-Length") or 0)
-    if length > 64_000:
+    content_type = (handler.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+    if content_type != "application/x-www-form-urlencoded":
+        raise ValueError("Expected form-encoded POST")
+    try:
+        length = int(handler.headers.get("Content-Length") or 0)
+    except ValueError as exc:
+        raise ValueError("Invalid Content-Length") from exc
+    if length < 0 or length > 64_000:
         raise ValueError("POST too large")
     raw = handler.rfile.read(length).decode("utf-8", "replace")
     return {k: (v[0] if v else "") for k, v in parse_qs(raw, keep_blank_values=True).items()}
+
+
+def trusted_post_origin(handler: BaseHTTPRequestHandler) -> bool:
+    """Reject browser POSTs initiated by a different web origin.
+
+    The dashboard deliberately has no login because it is loopback-only. A hostile
+    website can still submit a cross-origin HTML form to localhost, so browser POSTs
+    must name the same origin as the request Host. Non-browser clients that omit both
+    Origin and Referer remain supported for local automation.
+    """
+    origin = (handler.headers.get("Origin") or "").strip()
+    if not origin:
+        referer = (handler.headers.get("Referer") or "").strip()
+        if referer:
+            parsed_referer = urlparse(referer)
+            if parsed_referer.scheme and parsed_referer.netloc:
+                origin = f"{parsed_referer.scheme}://{parsed_referer.netloc}"
+    if not origin:
+        return True
+    parsed = urlparse(origin)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    request_host = (handler.headers.get("Host") or "").strip().lower()
+    return bool(request_host and parsed.netloc.lower() == request_host)
+
+
+def trusted_request_host(handler: BaseHTTPRequestHandler) -> bool:
+    if getattr(handler, "allow_remote_preview", False):
+        return True
+    raw = (handler.headers.get("Host") or "").strip()
+    parsed = urlparse("//" + raw)
+    return (parsed.hostname or "").lower() in ("127.0.0.1", "localhost", "::1")
 
 
 def person_query(qs: dict[str, list[str]]) -> int | None:
@@ -1679,6 +1782,7 @@ def person_query(qs: dict[str, list[str]]) -> int | None:
 
 class Handler(BaseHTTPRequestHandler):
     db_path: Path
+    allow_remote_preview = False
     server_version = "ryd-dashboard/0.1"
 
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -1690,6 +1794,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Robots-Tag", "noindex")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'none'; style-src 'unsafe-inline'; "
+            "script-src 'unsafe-inline'; img-src 'self' data:; "
+            "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+        )
         self.end_headers()
         self.wfile.write(body)
 
@@ -1699,10 +1812,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Location", location)
         self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
+        if not trusted_request_host(self):
+            self._send(403, b"untrusted Host header\n", "text/plain; charset=utf-8")
+            return
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
@@ -1728,9 +1846,11 @@ class Handler(BaseHTTPRequestHandler):
             html = render_settings(report, flash=flash)
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/export.csv":
+            with connect(self.db_path, readonly=True) as con:
+                body = render_evidence_csv(con, pid)
             self._send(
                 200,
-                render_csv(report).encode("utf-8"),
+                body.encode("utf-8"),
                 "text/csv; charset=utf-8",
             )
         elif path == "/health":
@@ -1739,8 +1859,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"not found\n", "text/plain; charset=utf-8")
 
     def do_POST(self) -> None:  # noqa: N802
-        if not preview_mode() and self.client_address[0] not in ("127.0.0.1", "::1"):
+        if not trusted_request_host(self):
+            self._send(403, b"untrusted Host header\n", "text/plain; charset=utf-8")
+            return
+        if not self.allow_remote_preview and self.client_address[0] not in ("127.0.0.1", "::1"):
             self._send(403, b"loopback only\n", "text/plain; charset=utf-8")
+            return
+        if not trusted_post_origin(self):
+            self._send(403, b"cross-origin POST refused\n", "text/plain; charset=utf-8")
             return
         parsed = urlparse(self.path)
         path = parsed.path
@@ -1777,27 +1903,44 @@ def preview_mode() -> bool:
     return os.environ.get("RYD_PREVIEW", "").strip().lower() in ("1", "true", "yes")
 
 
-def serve(db: Path, host: str, port: int) -> None:
+def serve(db: Path, host: str, port: int, *, allow_preview: bool = False) -> None:
     loopback = host in ("127.0.0.1", "localhost", "::1")
-    if not loopback and not preview_mode():
+    remote_preview = allow_preview and preview_mode()
+    if not loopback and not remote_preview:
         print(
             "Refusing to bind a PII dashboard off loopback. Use 127.0.0.1.",
             file=sys.stderr,
         )
         sys.exit(2)
+    if remote_preview:
+        with connect(db, readonly=True) as con:
+            sample = con.execute(
+                "SELECT value FROM config WHERE key = 'sample'"
+            ).fetchone()
+        if not sample or sample[0] in ("", "0"):
+            print(
+                "Refusing off-loopback preview: database is not synthetic demo data.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
     if not loopback:
         print(
-            "RYD_PREVIEW=1: binding off loopback. Publish only on Tailscale.",
+            "RYD_PREVIEW=1: exposing synthetic --demo data off loopback.",
             file=sys.stderr,
         )
     Handler.db_path = db
+    Handler.allow_remote_preview = remote_preview
     httpd = ThreadingHTTPServer((host, port), Handler)
     print(f"Dashboard http://{host}:{port}/  (db {db})", file=sys.stderr)
     httpd.serve_forever()
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    db = init_workspace(args.workspace)
+    try:
+        db = init_workspace(args.workspace)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     print(db)
     return 0
 
@@ -1809,7 +1952,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         with connect(db, readonly=False) as con:
             if con.execute("SELECT COUNT(*) FROM person").fetchone()[0] == 0:
                 seed_demo(con)
-        serve(db, args.host, args.port)
+        serve(db, args.host, args.port, allow_preview=True)
         return 0
     if not args.workspace:
         print("--workspace is required unless --demo", file=sys.stderr)
@@ -1826,18 +1969,17 @@ def cmd_export(args: argparse.Namespace) -> int:
     db = args.workspace / "takedown.db"
     report = report_from_db(db)
     out = args.out or (args.workspace / "exports" / "report.html")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(report, live=False), encoding="utf-8")
+    write_private_text(out, render_html(report, live=False))
     print(out)
     return 0
 
 
 def cmd_export_csv(args: argparse.Namespace) -> int:
     db = args.workspace / "takedown.db"
-    report = report_from_db(db)
     out = args.out or (args.workspace / "exports" / "evidence-log.csv")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_csv(report), encoding="utf-8")
+    with connect(db, readonly=True) as con:
+        content = render_evidence_csv(con)
+    write_private_text(out, content)
     print(out)
     return 0
 
