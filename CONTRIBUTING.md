@@ -40,6 +40,9 @@ Keep PII out of the repo. No sample `takedown.db`, no real listing URLs that ide
 - User-visible change: add a bullet under `## Unreleased` in `CHANGELOG.md`.
 - Do not add affiliate links or paid-removal upsells.
 - Match the existing tone: operations playbook, not a blog post.
+- `master` requires a PR. Merges wait for GitHub Actions: `browser-smoke`, `test (3.10)`, `test (3.11)`, `test (3.12)`, `test (3.13)`. Do not merge with missing, failing, or stale checks.
+
+Repository admins have an emergency ruleset bypass. Use it only when CI is broken or a production incident needs a hotfix. Note the reason on the PR or in the issue. Do not use it to skip review of playbook or schema changes.
 
 ## Security / abuse
 
