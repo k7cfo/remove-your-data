@@ -100,7 +100,7 @@ phonedigitsonly
 "Full Name" site:checkpeople.com
 ```
 
-Follow hits that show this person **plus** a matching phone, street, or city. Same name in another country/state with no other overlap: skip. Skip `keep_host` / `keep_url` on the roster. Default skip: articles, LinkedIn, non-broker coverage.
+Follow hits that show this person **plus** a matching phone, street, or city. Sweep **every household phone number**, not only the primary; reverse-phone pages on a sibling brand are separate rows and can reveal a previously unknown number. A bare `/name/` landing is not a listing by itself, but track it when the SERP snippet exposes a matching phone, street, email, or relative even if the origin is Cloudflare-gated. Same name in another country/state with no other overlap: skip. Skip `keep_host` / `keep_url` on the roster. Default skip: articles, LinkedIn, non-broker coverage.
 
 ## Match → log → file
 
@@ -157,7 +157,8 @@ Google will not usually hide pages they consider public-interest (gov, education
 
 ### Other indexes (after Google)
 
-- **Bing** content removal: [https://www.bing.com/webmaster/tools/content-removal](https://www.bing.com/webmaster/tools/content-removal) — covers a chunk of Yahoo/Ecosia/DDG.
+- **Bing** content removal: [https://www.bing.com/webmaster/tools/content-removal](https://www.bing.com/webmaster/tools/content-removal) — covers a chunk of Yahoo/Ecosia/DDG. For read-only verification from a datacenter, Bing HTML can mangle quoted queries and ignore `site:`; use the search RSS response (`&format=rss`).
+- **Yahoo** organic is Bing-powered. Its curl endpoint can return empty, so an empty Yahoo response is not proof that a result dropped; verify Bing directly.
 - DuckDuckGo has no separate people-search removal; it mostly inherits Bing.
 - Yandex: their webmaster / content-complaint flow if the leftover still ranks there.
 
