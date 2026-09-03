@@ -20,7 +20,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list â
 | MyLife | https://www.mylife.com/privacyrequest | Slow. Jotforms can disappear; do not send ID alone. A 410 can still SERP; dropped pages can reappear in Bing/Yahoo. Atlassian support can confirm account + published-profile deletion and quote 3â€“5 business days for a full purge; origin can go 404. Watch 24â€“72h. Do not file SERP while leftover origins are still live. |
 | Nuwber | https://nuwber.com/optout | |
 | ThatsThem | https://thatsthem.com/optout | |
-| Sync.me | site privacy / opt-out | Reverse-phone app. |
+| Sync.me | site privacy / opt-out | Reverse-phone app. HTTP 200 can still say Unknown or misparse a number; no matching person/identifier = false positive, not leftover. |
 | ClustrMaps | site privacy / opt-out | Address / map pages. |
 | FamilyTreeNow | site privacy / opt-out | |
 | Addresses.com / AnyWho / 411 | site privacy / opt-out | Directory leftovers. |
@@ -40,7 +40,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list â
 
 | Family | Opt-out | Covers |
 | --- | --- | --- |
-| PeopleConnect | https://suppression.peopleconnect.us/ | Intelius, TruthFinder, Instant Checkmate, US Search. Do not file those four separately unless a listing remains. |
+| PeopleConnect | https://suppression.peopleconnect.us/ | Intelius, TruthFinder, Instant Checkmate, US Search. Confirmation can be name-based only; allow ~48h, then sweep every household phone and address on all siblings. Exact non-name leftovers go in the same support thread, not a fresh suppression or four separate filings. |
 
 ## Upstream (may not rank, still feeds others)
 
