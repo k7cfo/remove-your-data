@@ -40,7 +40,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list â
 
 | Family | Opt-out | Covers |
 | --- | --- | --- |
-| PeopleConnect | https://suppression.peopleconnect.us/ | Intelius, TruthFinder, Instant Checkmate, US Search. Confirmation can be name-based only; allow ~48h, then sweep every household phone and address on all siblings. Exact non-name leftovers go in the same support thread, not a fresh suppression or four separate filings. |
+| PeopleConnect | https://suppression.peopleconnect.us/ | Intelius, TruthFinder, Instant Checkmate, US Search. Confirmation can be name-based only; allow ~48h, then sweep every household phone and address on all siblings. Exact non-name leftovers go in the same support thread (carve out numbers/pages that are not the subject); not a fresh suppression or four separate filings. |
 
 ## Upstream (may not rank, still feeds others)
 
