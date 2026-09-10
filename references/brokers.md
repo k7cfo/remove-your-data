@@ -21,6 +21,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list â
 | Nuwber | https://nuwber.com/optout | |
 | ThatsThem | https://thatsthem.com/optout | |
 | Sync.me | site privacy / opt-out | Reverse-phone app. HTTP 200 can still say Unknown or misparse a number; no matching person/identifier = false positive, not leftover. |
+| CyberBackgroundChecks | https://www.cyberbackgroundchecks.com/removal | `/removal` often Turnstile from datacenter. One attempt. No subject detail/PID with matching IDs while household has one: do not invent subject filing; household only if easy. |
 | ClustrMaps | site privacy / opt-out | Address / map pages. |
 | FamilyTreeNow | site privacy / opt-out | |
 | Addresses.com / AnyWho / 411 | site privacy / opt-out | Directory leftovers. |
