@@ -23,6 +23,9 @@ First public drop. Agent-first skill + localhost app.
 
 ## Unreleased
 
+### Changed
+- Human-needed tracker hygiene: keep SERP account removals deferred/last-step while people-search origins are still live; close or demote Turnstile/form human rows after a written vendor confirm; keep ops UI human section in sync with the tracker.
+
 ### Added
 
 - Playbook upgrades ([#1](https://github.com/k7cfo/remove-your-data/issues/1)): `STATUS.md` (verified / untested / defunct), `references/dead-urls.md` (loaded by `ryd.py pack`), named **file** vs **verify** pass, `relist_90d` clock, roster allowlist (`keep_host` / `keep_url`), `docs/PRIVACY.md`, `scripts/registry_pull.py` (hostname diff, no spray), `templates/regulator-complaint.md`, SERP new-host watch (`exports/serp-hosts.txt`). Queue gaps confirmed live where the form answered 200 (SmartBackgroundChecks, InfoTracer, SocialCatfish); PeekYou / PeopleSmart / SearchPeopleFree / PeopleSearchNow listed `untested` (datacenter 403); PublicDataUSA and Open Data USA origin marked `defunct`. Clearbit opt-out 404 → HubSpot privacy preferences.
