@@ -16,7 +16,8 @@ Checked from this repo's network on **2026-09-01**. Datacenter 403 is **not** de
 
 | Broker / family | Status | Opt-out | Notes |
 | --- | --- | --- | --- |
-| Whitepages | untested | https://www.whitepages.com/suppression-requests | 403 from datacenter. Phone-verify. Property Intel is a separate product (`privacyrequest@whitepages.com`). |
+| Whitepages | untested | https://www.whitepages.com/suppression-requests | 403 from datacenter. Phone-verify. People-profile suppression only. |
+| Whitepages Property Intel | untested/email | privacyrequest@whitepages.com | People suppression does not cover property pages (`property.whitepages.com`); Zendesk substantive follow-up after silence; escalate letter/regulator after ~14–30d if origin still live. |
 | Spokeo | verified | https://www.spokeo.com/optout | 200 on `/optout`. Consumer inbox. Empty verify landing → `privacy@spokeo.com`. |
 | BeenVerified | untested | https://www.beenverified.com/app/optout/search | 403 from datacenter. Email verify. |
 | TruePeopleSearch | untested | https://www.truepeoplesearch.com/removal | 403 from datacenter. `.com` and `.net` are different hosts. |
@@ -32,7 +33,7 @@ Checked from this repo's network on **2026-09-01**. Datacenter 403 is **not** de
 | ClustrMaps | untested | site privacy / opt-out | Address / map pages. |
 | FamilyTreeNow | untested | site privacy / opt-out | Confirm live URL before filing. |
 | Addresses.com / AnyWho / 411 | untested | site privacy / opt-out | Directory leftovers. |
-| ContactOut | verified | https://contactout.com/optout | 200. Email-verify + Turnstile; one attempt. Fallback `support@contactout.com`. |
+| ContactOut | verified | https://contactout.com/optout | 200. Email-verify + Turnstile; one attempt. Fallback `support@contactout.com`. Complete verify from a residential/consumer browser; escalate letter/regulator if still live after legal clock — do not loop Turnstile. |
 | PublicDataUSA | defunct | — | Distinct from Open Data USA. No DNS A record for `publicdatausa.com` / `www` on 2026-09-01. |
 | PeekYou | untested | https://peekyou.com/about/contact/ccpa_optout/do_not_sell/ | Host `peekyou.com` resolves; `www.peekyou.com` has no A. 403 from datacenter. Fallback `ccpa@peekyou.com`. |
 | PeopleSmart | untested | https://www.peoplesmart.com/optout | 403 from datacenter. Fallback `privacy@peoplesmart.com`. |
