@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS broker (
   family TEXT,
   optout_url TEXT,
   channel TEXT,
+  operator_region TEXT NOT NULL DEFAULT 'UNKNOWN'
+    CHECK (operator_region IN ('NA', 'SA', 'EU', 'AF', 'AS', 'OC', 'UNKNOWN')),
   notes TEXT
 );
 
@@ -67,6 +69,37 @@ CREATE TABLE IF NOT EXISTS listing (
   updated_at_utc TEXT NOT NULL,
   UNIQUE (person_id, url)
 );
+
+-- Recording time, not an inferred discovery/removal date. Triggers also cover
+-- agents writing workspace SQL directly. Keep action_log as the legal evidence.
+CREATE TABLE IF NOT EXISTS listing_status_event (
+  id INTEGER PRIMARY KEY,
+  listing_id INTEGER NOT NULL REFERENCES listing(id),
+  status TEXT NOT NULL
+    CHECK (status IN (
+      'found', 'filed', 'pending_verify', 'pending_drop',
+      'gone', 'leftover', 'blocked'
+    )),
+  occurred_at_utc TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_event
+  ON listing_status_event(listing_id, occurred_at_utc, id);
+
+CREATE TRIGGER IF NOT EXISTS listing_status_insert
+AFTER INSERT ON listing
+BEGIN
+  INSERT INTO listing_status_event (listing_id, status, occurred_at_utc)
+  VALUES (NEW.id, NEW.status, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS listing_status_update
+AFTER UPDATE OF status ON listing
+WHEN NEW.status != OLD.status
+BEGIN
+  INSERT INTO listing_status_event (listing_id, status, occurred_at_utc)
+  VALUES (NEW.id, NEW.status, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
 
 CREATE TABLE IF NOT EXISTS action_log (
   id INTEGER PRIMARY KEY,

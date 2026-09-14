@@ -28,9 +28,12 @@ python3 scripts/ryd.py serve --workspace "$HOME/privacy-takedown"
 # report    http://127.0.0.1:8765/
 # roster    http://127.0.0.1:8765/roster
 # settings  http://127.0.0.1:8765/settings
+# landscape http://127.0.0.1:8765/landscape
 ```
 
 Optional, off by default: multi-engine leftover watch via SerpApi (`SERPAPI_API_KEY` + `ryd.py serp-check --serpapi`). Watch-only; see [`references/search.md`](references/search.md). No key? Sign up free (250 searches/mo, email + phone verify) at https://serpapi.com/users/sign_up, copy the key from https://serpapi.com/manage-api-key, and set `SERPAPI_API_KEY`. SerpApi's official MCP ([serpapi-mcp](https://github.com/serpapi/serpapi-mcp), `https://mcp.serpapi.com/mcp` with a Bearer key) also works. SearchAPI.io is a different service; its keys will not work here.
+
+The report links to **Privacy landscape**, a person-scoped, offline globe of listings recorded in the local log. Its paused timeline shows status history by manually assigned operator region, with an explicit Unknown bucket. No location lookup or external map resources. Region metadata and migration details: [`docs/PRIVACY.md`](docs/PRIVACY.md#privacy-landscape).
 
 ## If you are a human
 

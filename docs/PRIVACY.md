@@ -25,6 +25,21 @@ Do not volunteer DOB, SSN, extra phones, or ID scans unless that form requires t
 
 The SQLite workspace is not application-encrypted. Keep it on an encrypted, non-synced disk or encrypted home directory when the identifiers are sensitive.
 
+## Privacy landscape
+
+`/landscape?p=<person_id>` counts only that person's listings recorded in the local workspace. The default selection matches the report; an unknown person ID shows an empty view. This is not comprehensive internet exposure or a map of the subject's home, IP address, servers, or data centers.
+
+- `broker.operator_region` is explicit, manually curated metadata: `NA`, `SA`, `EU`, `AF`, `AS`, `OC`, or `UNKNOWN`. Leave it `UNKNOWN` unless the operator's coarse region is known. Do not infer it from a name, domain suffix, subject residency, or network lookup. A listing without a broker also stays Unknown.
+- To record a known region, update that broker's `operator_region` in the private workspace database using its broker ID. Keep the source/rationale in `broker.notes`; notes never enter the visualization payload. No region lookup or enrichment is performed by the page.
+- SQLite triggers append `listing_status_event` on listing insertion and actual status changes, including direct SQL writes. These are local recording timestamps, independent of `created_at_utc` and `updated_at_utc`; `action_log` remains the legal evidence log.
+- `init` and `serve` upgrade existing workspaces with one migration-time baseline per listing lacking events. Earlier transitions are not invented. Read-only access before migration still shows current counts as Unknown, with no history.
+- History is ordered by UTC instant and event ID. Simultaneous events produce one frame; the last event ID determines each listing's state at that instant. Every status except `gone` remains exposed, including blocked listings. Re-listing increases exposure again.
+- Historical frames use the operator regions assigned now. Current is a separate snapshot at page load. The page does not refresh or perform live checks.
+
+The embedded visualization JSON contains only timestamps, exposed/gone counts, and coarse region codes—no names, identifiers, person/listing/broker IDs, URLs, request IDs, notes, or evidence. The surrounding page still contains the selected name and household navigation: keep the entire page private even though its visualization payload is aggregate-only.
+
+The simplified SVG, styles, and timeline script are inline. No geolocation, DNS, WHOIS, external tiles, webfonts, telemetry, or background network requests. Playback starts paused. Native buttons and the range slider support keyboard operation; reduced motion disables timed playback while preserving manual scrubbing. With JavaScript off, the current globe, totals, and seven-region table remain available.
+
 ## Roster allowlist
 
 Hosts and URLs the person wants **kept** (LinkedIn, news, personal site, interviews) live on the roster as `keep_host` / `keep_url`. They are not search identifiers. Never file an opt-out or SERP hide against an allowlisted host or URL.

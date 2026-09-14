@@ -1,0 +1,286 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:,">
+$theme_boot
+<title>Privacy landscape — $name</title>
+<style>
+$css
+.landscape-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin: 32px 0 24px; }
+.landscape-header .sub { overflow-wrap: anywhere; }
+.landscape-local { flex-shrink: 0; color: var(--muted); font: 11px/1.5 var(--mono); text-align: right; }
+.landscape-summary { display: flex; flex-wrap: wrap; gap: 32px; margin: 0; }
+.landscape-summary div { display: flex; flex-direction: column-reverse; gap: 4px; }
+.landscape-summary dt { color: var(--muted); font: 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.landscape-summary dd { margin: 0; color: var(--ink); font: 500 36px/1 var(--display); font-variant-numeric: tabular-nums; }
+.landscape-panel { padding: 20px; }
+.landscape-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: 24px; }
+.landscape-panel-head h2 { margin: 0 0 8px; color: var(--ink); line-height: 1.5; max-width: 48em; }
+.landscape-state { margin: 0; color: var(--muted); font: 12px/1.5 var(--mono); overflow-wrap: anywhere; }
+.landscape-map { display: block; width: 100%; height: auto; margin: 20px 0 0; }
+.landscape-ocean { fill: var(--bg-elev); stroke: var(--border-visible); stroke-width: 1.5; }
+.landscape-grid { fill: none; stroke: var(--border-visible); stroke-width: .7; }
+.landscape-land { fill: var(--surface-raised); stroke: var(--border-visible); stroke-width: 1.4; stroke-linejoin: round; }
+.landscape-marker { fill: var(--ink); fill-opacity: .18; stroke: var(--ink); stroke-width: 2; }
+.landscape-map text { fill: var(--ink); font: 14px var(--mono); text-anchor: middle; paint-order: stroke; stroke: var(--bg-elev); stroke-width: 4px; stroke-linejoin: round; }
+.landscape-map .landscape-unknown-note { fill: var(--muted); font-size: 11px; }
+.landscape-legend { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 12px; }
+.landscape-legend p { margin: 0; }
+.landscape-key { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50%; vertical-align: -2px; margin-right: 6px; }
+.landscape-timeline { margin-top: 20px; border-top: 1px solid var(--border-visible); padding-top: 20px; }
+.landscape-timeline[hidden], .landscape-motion-note[hidden] { display: none; }
+.landscape-time-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 12px; color: var(--muted); font: 12px/1.5 var(--mono); }
+.landscape-controls { display: flex; align-items: center; gap: 12px; }
+.landscape-controls button { min-width: 76px; min-height: 44px; border: 2px solid var(--border-visible); padding: 8px 12px; color: var(--ink); background: var(--bg-elev); font: 12px/1 var(--mono); cursor: pointer; }
+.landscape-controls button:hover:not(:disabled) { border-color: var(--ink); }
+.landscape-controls button:disabled { color: var(--muted); cursor: not-allowed; }
+.landscape-controls input { flex: 1; min-width: 60px; min-height: 44px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.landscape-motion-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.landscape-detail { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; margin-top: 8px; }
+#landscape-counts caption { padding: 20px 0 10px; text-align: left; font: 11px/1.5 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+#landscape-counts th[scope="row"] { font: 13px/1.5 var(--sans); letter-spacing: 0; text-transform: none; color: var(--ink); background: var(--bg-elev); }
+#landscape-counts td, #landscape-counts thead th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+#landscape-counts tr[data-region="UNKNOWN"] { border-top: 2px solid var(--border-visible); }
+.landscape-notes h2 { color: var(--ink); line-height: 1.5; }
+.landscape-notes p { color: var(--muted); margin: 0 0 12px; }
+@media (max-width: 700px) {
+  .shell { padding: 20px 16px 40px; }
+  .top, .landscape-header { align-items: start; flex-direction: column; }
+  .top { gap: 18px; }
+  .landscape-header { gap: 12px; }
+  .landscape-local { text-align: left; }
+  .landscape-panel { padding: 16px 10px; }
+  .landscape-panel-head { padding: 0 6px; }
+  .landscape-summary dd { font-size: 30px; }
+  .landscape-detail { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .landscape-controls { gap: 8px; }
+  .landscape-controls button { min-width: 64px; padding: 8px; }
+  .landscape-map text { font-size: 19px; }
+  .landscape-map .landscape-unknown-note { font-size: 15px; }
+  #landscape-counts th, #landscape-counts td { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landscape-map *, .landscape-controls * { animation: none; transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="top" aria-label="Workspace">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>remove-your-data</div>
+    <div class="top-meta">
+      <a href="$report_href">Back to dashboard</a>
+      $theme_ctrl
+      <span class="chip">local only</span>
+    </div>
+  </nav>
+  $people_nav
+  <main>
+    <header class="landscape-header">
+      <div>
+        <p class="eyebrow">Local log / operator regions</p>
+        <h1>Privacy landscape</h1>
+        <p class="sub">$name</p>
+      </div>
+      <div class="landscape-local">Offline visualization<br>No location lookup</div>
+    </header>
+    <section class="panel landscape-panel" aria-labelledby="landscape-heading">
+      <div class="landscape-panel-head">
+        <div>
+          <h2 id="landscape-heading">Known indexed listings by operator region—not data-center location</h2>
+          <p id="landscape-state" class="landscape-state" role="status" aria-live="polite" aria-atomic="true">Current snapshot · local log at page load</p>
+        </div>
+        <dl class="landscape-summary" aria-label="Selected snapshot totals">
+          <div><dt>Exposed / not gone</dt><dd id="landscape-exposed">$exposed</dd></div>
+          <div><dt>Recorded gone</dt><dd id="landscape-gone">$gone</dd></div>
+        </dl>
+      </div>
+      <svg id="landscape-globe" class="landscape-map" viewBox="0 0 840 390" role="img" aria-labelledby="landscape-globe-title landscape-globe-desc">
+        <title id="landscape-globe-title">Known listings grouped by operator region</title>
+        <desc id="landscape-globe-desc">A schematic globe with six regional anchors and a separate Unknown bucket. Circle size indicates exposed listings; exact exposed and gone counts appear in the regional table below. Anchors are not precise locations.</desc>
+        <defs><clipPath id="landscape-globe-clip"><ellipse cx="390" cy="185" rx="330" ry="166"/></clipPath></defs>
+        <ellipse class="landscape-ocean" cx="390" cy="185" rx="330" ry="166"/>
+        <g clip-path="url(#landscape-globe-clip)" aria-hidden="true">
+          <g class="landscape-grid">
+            <ellipse cx="390" cy="185" rx="240" ry="166"/>
+            <ellipse cx="390" cy="185" rx="125" ry="166"/>
+            <path d="M390 19V351M60 185H720M75 135H705M75 235H705M124 85H656M124 285H656"/>
+          </g>
+          <g class="landscape-land">
+            <path d="M94 115L123 85 166 70 191 79 217 63 255 79 285 96 279 117 251 125 244 145 218 151 205 171 184 173 195 190 211 195 220 213 207 218 190 203 168 195 151 173 133 159 123 137 99 135Z"/>
+            <path d="M273 40L312 35 334 46 321 68 293 83 277 65Z"/>
+            <path d="M221 218L246 214 277 231 294 251 281 272 272 294 253 314 244 337 230 316 227 285 217 262 209 239Z"/>
+            <path d="M384 117L399 96 420 91 433 71 450 73 447 98 465 113 451 129 429 128 416 145 398 140 389 127Z"/>
+            <path d="M371 111L378 102 382 115 377 125Z"/>
+            <path d="M393 156L419 145 446 153 466 173 483 191 470 212 449 220 441 250 425 281 408 274 395 250 389 225 370 202 371 177Z"/>
+            <path d="M466 244L475 233 479 246 470 266 463 261Z"/>
+            <path d="M453 103L476 79 502 67 537 68 559 55 597 72 630 83 660 104 682 131 663 145 636 134 621 148 600 153 585 172 566 171 554 192 539 216 529 197 515 178 497 170 483 150 462 139 473 122Z"/>
+            <path d="M565 184L580 188 590 211 607 224 601 233 584 218 574 207Z"/>
+            <path d="M641 158L649 147 654 164 647 179 639 176Z"/>
+            <path d="M590 238L612 242 624 250 615 254 597 250Z"/>
+            <path d="M603 263L626 252 650 263 667 281 657 302 632 305 613 292 596 283Z"/>
+            <path d="M681 309L691 300 695 313 684 326 676 327Z"/>
+          </g>
+        </g>
+        <path d="M707 305H801" class="landscape-grid" aria-hidden="true"/>
+        <text x="750" y="292" class="landscape-unknown-note" aria-hidden="true">Not assigned</text>
+        $markers
+      </svg>
+      <div class="landscape-legend">
+        <p><span class="landscape-key" aria-hidden="true"></span>Circle area = exposed listings, on a fixed scale across the timeline.</p>
+        <p>Fixed regional anchors, not addresses or server locations.</p>
+      </div>
+      <div id="landscape-timeline" class="landscape-timeline" hidden>
+        <div class="landscape-time-heading">
+          <label for="landscape-time">Recorded history</label>
+          <output id="landscape-time-label" for="landscape-time">Current snapshot</output>
+        </div>
+        <div class="landscape-controls">
+          <button id="landscape-play" type="button" aria-label="Play recorded history" aria-pressed="false">Play</button>
+          <input id="landscape-time" type="range" min="0" max="0" value="0" step="1" aria-describedby="landscape-history-note landscape-motion-note" aria-valuetext="Current snapshot">
+          <button id="landscape-current" type="button">Current</button>
+        </div>
+        <p id="landscape-motion-note" class="landscape-motion-note" hidden>Reduced motion is on. Use the slider or Current; timed playback is disabled.</p>
+      </div>
+    </section>
+    <div class="landscape-detail">
+      <table id="landscape-counts">
+        <caption id="landscape-table-caption">Regional counts · current snapshot</caption>
+        <thead><tr><th scope="col">Operator region</th><th scope="col">Exposed</th><th scope="col">Gone</th></tr></thead>
+        <tbody>$rows</tbody>
+      </table>
+      <aside class="landscape-notes" aria-labelledby="landscape-reading">
+        <h2 id="landscape-reading">What this view can tell you</h2>
+        <p>Only known indexed listings in this local log are counted. This is not a map of your complete internet exposure, where your data is stored, or where you live.</p>
+        <p><strong>Exposed</strong> means any listing not recorded as gone, including pending or blocked work. <strong>Gone</strong> reflects the status recorded in the log, not a new live check. Zero means no listings counted here, not proof of no exposure.</p>
+        <p><strong>Unknown</strong> is a separate bucket for operators without an assigned region. Regions are manually curated; this page performs no geolocation, DNS, WHOIS, or other lookup.</p>
+        <h2>Reading the timeline</h2>
+        <p id="landscape-history-note">History begins when status changes are recorded locally. Older workspaces start with a baseline at migration time; earlier history is not reconstructed. Historical frames use the operator regions assigned now.</p>
+        <p>Playback steps through recorded timestamps, not equal periods of time. Current is the separate snapshot loaded with this page. The page does not refresh automatically.</p>
+        <noscript><p>JavaScript is off. The current globe, totals, and regional table remain available; timeline playback requires JavaScript.</p></noscript>
+      </aside>
+    </div>
+  </main>
+  <footer>Private workspace / aggregate visualization / no external map resources</footer>
+</div>
+<script id="landscape-data" type="application/json">$data</script>
+<script>
+(function () {
+  'use strict';
+  const data = JSON.parse(document.getElementById('landscape-data').textContent);
+  const history = data.history;
+  let peak = 1;
+  function measure(counts) {
+    Object.values(counts).forEach(function (count) { peak = Math.max(peak, count.exposed); });
+  }
+  measure(data.current);
+  history.forEach(function (frame) { measure(frame.counts); });
+  if (!history.length) return;
+
+  const regions = ['NA', 'SA', 'EU', 'AF', 'AS', 'OC', 'UNKNOWN'];
+  const names = ['North America', 'South America', 'Europe', 'Africa', 'Asia', 'Oceania', 'Unknown'];
+  const nodes = regions.map(function (region, index) {
+    const marker = document.querySelector('#landscape-globe g[data-region="' + region + '"]');
+    const row = document.querySelector('#landscape-counts tr[data-region="' + region + '"]');
+    return {
+      region: region,
+      name: names[index],
+      circle: marker.querySelector('circle'),
+      title: marker.querySelector('title'),
+      exposed: row.querySelector('.exposed'),
+      gone: row.querySelector('.gone')
+    };
+  });
+  const slider = document.getElementById('landscape-time');
+  const play = document.getElementById('landscape-play');
+  const current = document.getElementById('landscape-current');
+  const timeLabel = document.getElementById('landscape-time-label');
+  const state = document.getElementById('landscape-state');
+  const totalExposed = document.getElementById('landscape-exposed');
+  const totalGone = document.getElementById('landscape-gone');
+  const caption = document.getElementById('landscape-table-caption');
+  const motionNote = document.getElementById('landscape-motion-note');
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let index = history.length;
+  let timer = null;
+
+  function pause() {
+    if (timer !== null) window.clearInterval(timer);
+    timer = null;
+    play.textContent = 'Play';
+    play.setAttribute('aria-label', 'Play recorded history');
+    play.setAttribute('aria-pressed', 'false');
+  }
+
+  function show(next) {
+    index = next;
+    const isCurrent = index === history.length;
+    const counts = isCurrent ? data.current : history[index].counts;
+    const label = isCurrent ? 'Current snapshot' : history[index].at;
+    let exposed = 0;
+    let gone = 0;
+    nodes.forEach(function (node) {
+      const count = counts[node.region];
+      exposed += count.exposed;
+      gone += count.gone;
+      node.circle.setAttribute('r', 32 * Math.sqrt(count.exposed / peak));
+      node.title.textContent = node.name + ': ' + count.exposed + ' exposed, ' + count.gone + ' gone';
+      node.exposed.textContent = count.exposed;
+      node.gone.textContent = count.gone;
+    });
+    totalExposed.textContent = exposed;
+    totalGone.textContent = gone;
+    slider.value = index;
+    slider.setAttribute('aria-valuetext', isCurrent ? label : 'Recorded ' + label);
+    timeLabel.textContent = isCurrent ? label : (index + 1) + ' / ' + history.length + ' · ' + label;
+    state.textContent = isCurrent ? 'Current snapshot · local log at page load' : 'Recorded ' + label;
+    caption.textContent = 'Regional counts · ' + (isCurrent ? 'current snapshot' : label);
+  }
+
+  play.addEventListener('click', function () {
+    if (timer !== null) {
+      pause();
+      return;
+    }
+    if (motion.matches || document.hidden) return;
+    if (index === history.length) show(0);
+    play.textContent = 'Pause';
+    play.setAttribute('aria-label', 'Pause recorded history');
+    play.setAttribute('aria-pressed', 'true');
+    timer = window.setInterval(function () {
+      show(index + 1);
+      if (index === history.length) pause();
+    }, 1200);
+  });
+  slider.addEventListener('input', function () {
+    pause();
+    show(Number(slider.value));
+  });
+  current.addEventListener('click', function () {
+    pause();
+    show(history.length);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) pause();
+  });
+  window.addEventListener('pagehide', pause);
+
+  function updateMotion() {
+    pause();
+    play.disabled = motion.matches;
+    motionNote.hidden = !motion.matches;
+  }
+  motion.addEventListener('change', updateMotion);
+  slider.max = history.length;
+  show(history.length);
+  updateMotion();
+  document.getElementById('landscape-timeline').hidden = false;
+})();
+</script>
+</body>
+</html>

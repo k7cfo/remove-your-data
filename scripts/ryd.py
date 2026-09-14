@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from string import Template
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 from urllib.request import Request, urlopen
@@ -31,6 +32,14 @@ STATUSES = (
     "gone",
     "leftover",
     "blocked",
+)
+REGION_CODES = ("NA", "SA", "EU", "AF", "AS", "OC", "UNKNOWN")
+REGION_LABELS = (
+    "North America", "South America", "Europe", "Africa", "Asia", "Oceania", "Unknown"
+)
+REGION_ANCHORS = (
+    (185, 135), (250, 255), (430, 115), (430, 220),
+    (565, 145), (635, 280), (750, 330),
 )
 RELATIONSHIPS = ("self", "spouse", "partner", "child", "parent", "other")
 CONSENT = ("self", "parent_of_minor", "authorized_agent", "unconfirmed")
@@ -204,6 +213,23 @@ def migrate(con: sqlite3.Connection) -> None:
         ensure_column(con, "identifier", "scan", "INTEGER NOT NULL DEFAULT 1")
     if "clock" in tables:
         rebuild_clock_kinds(con, sql)
+    ensure_column(
+        con, "broker", "operator_region",
+        "TEXT NOT NULL DEFAULT 'UNKNOWN' "
+        "CHECK (operator_region IN ('NA','SA','EU','AF','AS','OC','UNKNOWN'))",
+    )
+    # Old snapshots do not tell us when previous transitions happened.
+    con.execute(
+        """
+        INSERT INTO listing_status_event (listing_id, status, occurred_at_utc)
+        SELECT l.id, l.status, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        FROM listing l
+        WHERE NOT EXISTS (
+          SELECT 1 FROM listing_status_event e WHERE e.listing_id = l.id
+        )
+        ORDER BY l.id
+        """
+    )
     con.execute("DROP VIEW IF EXISTS v_evidence_chronology")
     con.execute("DROP VIEW IF EXISTS v_open_clocks")
     con.executescript(sql)
@@ -886,14 +912,72 @@ def cmd_serp_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def load_landscape(con: sqlite3.Connection, person_id: int | None) -> dict[str, Any]:
+    """Aggregate recorded status observations, never infer geography or history."""
+    current = {code: {"exposed": 0, "gone": 0} for code in REGION_CODES}
+    history: list[dict[str, Any]] = []
+    result = {"current": current, "history": history}
+    if person_id is None:
+        return result
+    # Read-only exports of an older workspace still have a useful current view.
+    region_sql = (
+        "b.operator_region" if "operator_region" in table_cols(con, "broker")
+        else "'UNKNOWN'"
+    )
+    for row in con.execute(
+        f"""
+        SELECT {region_sql} AS region, l.status, COUNT(*) AS n
+        FROM listing l LEFT JOIN broker b ON b.id = l.broker_id
+        WHERE l.person_id = ? GROUP BY region, l.status
+        """, (person_id,),
+    ):
+        region = row["region"] if row["region"] in REGION_CODES else "UNKNOWN"
+        current[region]["gone" if row["status"] == "gone" else "exposed"] += row["n"]
+    if not table_cols(con, "listing_status_event"):
+        return result
+    events = []
+    for row in con.execute(
+        f"""
+        SELECT e.id, e.listing_id, e.status, e.occurred_at_utc,
+               {region_sql} AS region
+        FROM listing_status_event e
+        JOIN listing l ON l.id = e.listing_id
+        LEFT JOIN broker b ON b.id = l.broker_id
+        WHERE l.person_id = ?
+        """, (person_id,),
+    ):
+        at = parse_utc(row["occurred_at_utc"])
+        # Malformed workspace text is not a timestamp and must not reach JSON.
+        if at is not None:
+            events.append((at, row["id"], row))
+    events.sort(key=lambda event: (event[0], event[1]))
+    counts = {code: {"exposed": 0, "gone": 0} for code in REGION_CODES}
+    states: dict[int, tuple[str, str]] = {}
+    for index, (at, _, row) in enumerate(events):
+        region = row["region"] if row["region"] in REGION_CODES else "UNKNOWN"
+        status = "gone" if row["status"] == "gone" else "exposed"
+        previous = states.get(row["listing_id"])
+        if previous:
+            counts[previous[0]][previous[1]] -= 1
+        counts[region][status] += 1
+        states[row["listing_id"]] = (region, status)
+        # Simultaneous observations form one frame, never transient fake spikes.
+        if index + 1 == len(events) or events[index + 1][0] != at:
+            history.append({
+                "at": at.isoformat().replace("+00:00", "Z"),
+                "counts": {code: values.copy() for code, values in counts.items()},
+            })
+    return result
+
+
 def load_report(
     con: sqlite3.Connection, person_id: int | None = None
 ) -> dict[str, Any]:
     people = list_people(con)
     person = None
-    if person_id:
+    if person_id is not None:
         person = next((p for p in people if p["id"] == person_id), None)
-    if person is None and people:
+    if person_id is None and people:
         person = next((p for p in people if p.get("relationship") == "self"), people[0])
     now = utcnow()
     counts = {status: 0 for status in STATUSES}
@@ -914,10 +998,8 @@ def load_report(
         LEFT JOIN broker b ON b.id = c.broker_id
         LEFT JOIN listing l ON l.id = c.listing_id
     """
-    clock_args: tuple[Any, ...] = ()
-    if pid:
-        clocks_sql += " WHERE c.person_id = ?"
-        clock_args = (pid,)
+    clocks_sql += " WHERE c.person_id = ?"
+    clock_args: tuple[Any, ...] = (pid,)
     clocks_sql += " ORDER BY c.due_at_utc ASC"
     clocks = [dict(row) for row in con.execute(clocks_sql, clock_args)]
     open_clocks = []
@@ -1026,6 +1108,7 @@ def load_report(
         "settings": settings,
         "counts": counts,
         "total": total,
+        "landscape": load_landscape(con, pid),
         "open_clocks": open_clocks,
         "overdue": overdue,
         "listings": listings,
@@ -1165,7 +1248,8 @@ def people_nav(people: list[dict[str, Any]], selected_id: int | None, current: s
         skip = ""
         if person.get("consent_basis") == "unconfirmed" or not person.get("active", 1):
             skip = " skip"
-        href = f"/roster?p={person['id']}" if current == "roster" else f"/?p={person['id']}"
+        base = {"roster": "/roster", "landscape": "/landscape"}.get(current, "/")
+        href = f"{base}?p={person['id']}"
         rel = person.get("relationship") or "self"
         bits.append(
             f'<a class="who{on}{skip}" href="{href}">{escape(person["legal_name"])}'
@@ -1236,6 +1320,7 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
     links = (
         f'<a href="/roster">roster</a> · <a href="/export.csv">CSV</a> · '
         f'<a href="/report.html">snapshot</a> {GEAR_LINK}'
+        f'<a href="/landscape?p={person["id"] if person else ""}">Privacy landscape</a> '
         if live
         else "<span>snapshot</span>"
     )
@@ -1388,6 +1473,55 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
 </body>
 </html>
 """
+
+
+def script_json(value: Any) -> str:
+    """JSON inside a script element is raw text, not HTML-entity escaped."""
+    return (
+        json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+        .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    )
+
+
+def render_landscape(report: dict[str, Any]) -> str:
+    data = report["landscape"]
+    person = report["person"]
+    markers, rows = [], []
+    peak = max(
+        (counts["exposed"] for frame in data["history"] for counts in frame["counts"].values()),
+        default=0,
+    )
+    peak = max(peak, max(counts["exposed"] for counts in data["current"].values()), 1)
+    for code, label, (x, y) in zip(REGION_CODES, REGION_LABELS, REGION_ANCHORS):
+        counts = data["current"][code]
+        exposed, gone = counts["exposed"], counts["gone"]
+        radius = 32 * (exposed / peak) ** 0.5
+        markers.append(
+            f'<g data-region="{code}"><circle class="landscape-marker" '
+            f'cx="{x}" cy="{y}" r="{radius:g}">'
+            f'<title>{label}: {exposed} exposed, {gone} gone</title></circle>'
+            f'<text x="{x}" y="{y + 45}">{code}</text></g>'
+        )
+        rows.append(
+            f'<tr data-region="{code}"><th scope="row">{label}</th>'
+            f'<td class="exposed">{exposed}</td><td class="gone">{gone}</td></tr>'
+        )
+    assets = SCHEMA.parent
+    return Template((assets / "landscape.html").read_text(encoding="utf-8")).substitute(
+        css=(assets / "dashboard.css").read_text(encoding="utf-8"),
+        theme_boot=THEME_BOOT,
+        theme_ctrl=THEME_CTRL,
+        people_nav=people_nav(
+            report["people"], person["id"] if person else None, "landscape"
+        ),
+        name=escape(person["legal_name"] if person else "No person selected"),
+        report_href=f'/?p={person["id"]}' if person else "/",
+        data=script_json(data),
+        markers="".join(markers),
+        rows="".join(rows),
+        exposed=sum(counts["exposed"] for counts in data["current"].values()),
+        gone=sum(counts["gone"] for counts in data["current"].values()),
+    )
 
 
 def spreadsheet_safe(value: Any) -> str:
@@ -2016,6 +2150,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/report.html":
             html = render_html(report, live=False, hero=hero)
             self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+        elif path == "/landscape":
+            html = render_landscape(report)
+            self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/roster":
             flash = (qs.get("err") or qs.get("ok") or [""])[0]
             html = render_roster(report, flash=flash)
@@ -2107,6 +2244,8 @@ def serve(db: Path, host: str, port: int, *, allow_preview: bool = False) -> Non
             "RYD_PREVIEW=1: exposing synthetic --demo data off loopback.",
             file=sys.stderr,
         )
+    with connect(db, readonly=False) as con:
+        migrate(con)
     Handler.db_path = db
     Handler.allow_remote_preview = remote_preview
     httpd = ThreadingHTTPServer((host, port), Handler)
