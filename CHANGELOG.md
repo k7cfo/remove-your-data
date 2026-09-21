@@ -24,6 +24,7 @@ First public drop. Agent-first skill + localhost app.
 ## Unreleased
 
 ### Changed
+- Radaris-class court-order / records-transferred landings with no matching identifiers are not a refile. After a clean origin 404, later CF/JS 403 on subject and control URLs the same hour is site-wide opacity, not a reappear.
 - Google Results-about-you / SERP Remove approval for one URL is not an origin drop (recheck live page; CF/JS 403 ≠ 404). Whitepages address pages and Property Intel are separate leftovers — hiding one does not take the other down.
 - Human-needed tracker hygiene: keep SERP account removals deferred/last-step while people-search origins are still live; close or demote Turnstile/form human rows after a written vendor confirm; keep ops UI human section in sync with the tracker.
 
