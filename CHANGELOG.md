@@ -23,6 +23,8 @@ First public drop. Agent-first skill + localhost app.
 
 ## Unreleased
 
+- Note standalone LinkedIn scrapers / professional people directories without home phone or address are out of scope.
+
 ### Changed
 - Whitepages Zendesk "could not locate any listings" / "may already be removed" + screenshot ask is not a close when Property Intel (or another sibling URL) is still origin 200 with matching owner/address identifiers — reply same-thread with exact URL + dated screenshot; agents often search people profiles only. Partial resident/landline scrub while owner/trust/street remain is not a full drop; keep the leftover and escalation clock open (stale SERP may still show scrubbed residents).
 - Radaris-class court-order / records-transferred landings with no matching identifiers are not a refile. After a clean origin 404, later CF/JS 403 on subject and control URLs the same hour is site-wide opacity, not a reappear.
