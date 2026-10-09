@@ -98,6 +98,8 @@ Resume the next unanswered item on the next turn. If they volunteer later answer
 
 Prefer `/roster` only after they have a primary person **or** they ask to paste long lists (many aliases, old addresses). Chat 1:1 for the required set.
 
+With Python, persist the same 1:1 flow using `ryd.py intake --workspace "$WORKSPACE" --tools "detected tools"`. It prints one question. On the next turn use `--answer "their answer"`; without `--answer` it resumes the pending question. Residency uses `country-code, state/province` (e.g. `US, CA`). Phones and keep-sites use comma-separated values; `none`, `skip` (cadence), and `defaults` (keep-sites) are explicit answers. Tools are recorded from detection, so Q8 is skipped. Name + residency create the primary row; Q9 unlocks `pack`. An existing incomplete primary is refused rather than overwritten: migrate it explicitly after reviewing its recorded intake.
+
 Primary person, required, this order:
 
 1. Legal name

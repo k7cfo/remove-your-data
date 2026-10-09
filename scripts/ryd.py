@@ -1443,6 +1443,12 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
     )
     flash_html = f'<p class="callout"><strong>{escape(flash)}</strong></p>' if flash else ""
     consent_note = ""
+    if not report.get("people"):
+        consent_note = (
+            '<p class="callout"><strong>Primary intake required.</strong>'
+            '<span>Run <code>ryd.py intake --workspace YOUR_WORKSPACE --tools "detected tools"</code> '
+            'with your agent, one answer per turn, before adding family or searching.</span></p>'
+        )
     if person and person.get("consent_basis") == "unconfirmed":
         consent_note = (
             '<p class="callout"><strong>Not scanned.</strong>'
@@ -1499,9 +1505,9 @@ def render_roster(report: dict[str, Any], flash: str = "") -> str:
     <label>Relationship <select name="relationship">{rel_opts}</select></label>
     <label>Consent
       <select name="consent_basis">
+        <option value="unconfirmed">not yet — do not scan</option>
         <option value="parent_of_minor">parent of minor</option>
         <option value="authorized_agent">they authorized me</option>
-        <option value="unconfirmed">not yet — do not scan</option>
       </select>
     </label>
     <button type="submit">Add person</button>
@@ -1984,6 +1990,113 @@ def cmd_export_csv(args: argparse.Namespace) -> int:
     return 0
 
 
+INTAKE_QUESTIONS = (
+    "What is your legal name?",
+    "Where do you live (country code, and state/province for US, CA or AU; e.g. US, CA)?",
+    "What is your current city / postal code (street optional)?",
+    "Which phones appear on listings (comma-separated, or none)?",
+    "What verify mailbox can you open yourself?",
+    "What cadence do you want (e.g. 7d, or skip for weekly)?",
+    "What anonymity mode do you want (dedicated, personal or max)?",
+    "Which sites should be kept (comma-separated hosts/URLs, or defaults)?",
+)
+
+
+def primary_intake(con: sqlite3.Connection, answer: str | None = None) -> str:
+    """Persist one answer per call; never mark complete before the keep-sites answer."""
+    primary = con.execute(
+        "SELECT * FROM person WHERE relationship = 'self' ORDER BY id LIMIT 1"
+    ).fetchone()
+    if primary and primary["intake_complete"]:
+        if answer is not None:
+            raise ValueError("Primary intake is already complete.")
+        return "Primary intake complete. No searches or submissions have been performed."
+    answers = dict(con.execute(
+        "SELECT key, value FROM config WHERE key LIKE 'primary_intake_%'"
+    ).fetchall())
+    step = next((i for i in range(len(INTAKE_QUESTIONS))
+                 if f"primary_intake_{i}" not in answers), len(INTAKE_QUESTIONS))
+    if answer is None:
+        return INTAKE_QUESTIONS[step]
+    value = answer.strip()
+    if not value or len(value) > 2000:
+        raise ValueError("Answer must contain 1–2000 characters.")
+    pid = primary["id"] if primary else None
+    if step == 0:
+        if primary:
+            raise ValueError("Existing incomplete primary needs explicit migration; refusing to replace it.")
+        if len(value) > 120:
+            raise ValueError("Name must be at most 120 characters.")
+    elif step == 1:
+        if con.execute("SELECT COUNT(*) FROM person").fetchone()[0] >= MAX_PEOPLE:
+            raise ValueError("Household cap is 12 people.")
+        parts = [part.strip().upper() for part in value.split(",", 1)]
+        country = parts[0]
+        region = parts[1] if len(parts) > 1 else ""
+        if len(country) != 2 or not country.isalpha():
+            raise ValueError("Use a two-letter country code.")
+        if country in ("US", "CA", "AU") and not region:
+            raise ValueError("State/province is required for this country.")
+        con.execute(
+            "INSERT INTO person (legal_name, residency_country, residency_region, "
+            "relationship, consent_basis, intake_complete, created_at_utc) "
+            "VALUES (?, ?, ?, 'self', 'self', 0, ?)",
+            (answers["primary_intake_0"], country, region or None, utc_iso()),
+        )
+        pid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+        add_identifier(con, pid, "name", answers["primary_intake_0"])
+    elif step == 2:
+        add_identifier(con, pid, "city", value)
+    elif step == 3:
+        if value.lower() != "none":
+            for phone in value.split(","):
+                if len(normalize_ident("phone", phone)) < 7:
+                    raise ValueError("Use a phone number, or none.")
+                add_identifier(con, pid, "phone", phone)
+    elif step == 4:
+        if value.count("@") != 1 or any(c.isspace() for c in value):
+            raise ValueError("Use a verify email address you control.")
+        add_identifier(con, pid, "email", value)
+    elif step == 5:
+        cadence = 168 if value.lower() == "skip" else parse_cadence(value)
+        con.execute("UPDATE person SET cadence_hours = ? WHERE id = ?", (cadence, pid))
+    elif step == 6:
+        if value not in ("dedicated", "personal", "max"):
+            raise ValueError("Choose dedicated, personal or max.")
+        con.execute("UPDATE person SET anonymity_mode = ? WHERE id = ?", (value, pid))
+    elif step == 7:
+        if value.lower() != "defaults":
+            for keep in value.split(","):
+                kind = "keep_url" if keep.strip().startswith(("https://", "http://")) else "keep_host"
+                add_identifier(con, pid, kind, keep)
+        con.execute("UPDATE person SET intake_complete = 1 WHERE id = ?", (pid,))
+    con.execute("INSERT INTO config (key, value) VALUES (?, ?)",
+                (f"primary_intake_{step}", value))
+    if step == len(INTAKE_QUESTIONS) - 1:
+        return "Primary intake complete. No searches or submissions have been performed."
+    return INTAKE_QUESTIONS[step + 1]
+
+
+def cmd_intake(args: argparse.Namespace) -> int:
+    db = args.workspace / "takedown.db"
+    if not db.exists():
+        print("missing workspace — run init first", file=sys.stderr)
+        return 1
+    try:
+        with connect(db, readonly=False) as con:
+            if args.tools is not None:
+                con.execute("INSERT OR REPLACE INTO config (key, value) VALUES ('host_tools', ?)",
+                            (args.tools,))
+            if not con.execute("SELECT 1 FROM config WHERE key = 'host_tools'").fetchone():
+                raise ValueError("First record detected host tools with --tools; do not invent capabilities.")
+            question = primary_intake(con, args.answer)
+        print(question)
+    except (ValueError, sqlite3.Error) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_add_person(args: argparse.Namespace) -> int:
     db = args.workspace / "takedown.db"
     if not db.exists():
@@ -2048,6 +2161,12 @@ def build_parser() -> argparse.ArgumentParser:
     csv_p.add_argument("--workspace", type=Path, required=True)
     csv_p.add_argument("--out", type=Path)
     csv_p.set_defaults(func=cmd_export_csv)
+
+    intake = sub.add_parser("intake", help="resume primary intake one question at a time")
+    intake.add_argument("--workspace", type=Path, required=True)
+    intake.add_argument("--tools", help="record capabilities actually detected on this host")
+    intake.add_argument("--answer", help="answer the currently pending question")
+    intake.set_defaults(func=cmd_intake)
 
     ap = sub.add_parser("add-person", help="add a family member to the roster")
     ap.add_argument("--workspace", type=Path, required=True)

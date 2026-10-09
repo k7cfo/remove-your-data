@@ -2,6 +2,10 @@
 
 All notable changes to this project. Dates are UTC.
 
+## Unreleased
+
+- Add resumable primary CLI intake; search packs stay blocked until keep-sites is answered. Default the family consent form to unconfirmed.
+
 ## 0.1.0 — 2026-08-29
 
 First public drop. Agent-first skill + localhost app.

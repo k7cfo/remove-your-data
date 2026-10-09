@@ -353,6 +353,63 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("not synthetic demo data", result.stderr)
 
+class PrimaryIntakeTests(WorkspaceCase):
+    def answer(self, value):
+        with self.connect() as con:
+            return ryd.primary_intake(con, value)
+
+    def test_resumable_intake_blocks_pack_until_last_answer(self):
+        with self.connect() as con:
+            self.assertEqual(ryd.primary_intake(con), ryd.INTAKE_QUESTIONS[0])
+        self.answer('Synthetic Public')
+        self.answer('US, CA')
+        with self.connect() as con:
+            person = con.execute('SELECT * FROM person').fetchone()
+            self.assertEqual(person['consent_basis'], 'self')
+            self.assertEqual(person['intake_complete'], 0)
+        args = argparse.Namespace(workspace=self.workspace, person_id=None)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(ryd.cmd_pack(args), 1)
+        for answer in ('Example City 00000', 'none', 'synthetic@example.invalid',
+                       'skip', 'dedicated'):
+            self.answer(answer)
+        with self.connect() as con:
+            self.assertEqual(ryd.primary_intake(con), ryd.INTAKE_QUESTIONS[-1])
+            self.assertEqual(con.execute('SELECT intake_complete FROM person').fetchone()[0], 0)
+        self.answer('linkedin.com, https://example.invalid/keep')
+        with self.connect() as con:
+            self.assertEqual(con.execute('SELECT intake_complete FROM person').fetchone()[0], 1)
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM identifier WHERE kind LIKE 'keep_%' AND scan = 0").fetchone()[0], 2)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(ryd.cmd_pack(args), 0)
+        with self.assertRaises(ValueError):
+            self.answer('overwrite')
+
+    def test_invalid_residency_is_not_persisted(self):
+        self.answer('Synthetic Public')
+        with self.assertRaises(ValueError):
+            self.answer('US')
+        with self.connect() as con:
+            self.assertEqual(con.execute('SELECT COUNT(*) FROM person').fetchone()[0], 0)
+            self.assertEqual(ryd.primary_intake(con), ryd.INTAKE_QUESTIONS[1])
+
+    def test_existing_primary_is_not_overwritten(self):
+        with self.connect() as con:
+            add_primary(con, intake_complete=0)
+        with self.assertRaises(ValueError):
+            self.answer('Replacement Synthetic')
+        with self.connect() as con:
+            self.assertEqual(con.execute('SELECT COUNT(*) FROM person').fetchone()[0], 1)
+
+    def test_failed_multiple_identifiers_roll_back_whole_answer(self):
+        for answer in ('Synthetic Public', 'US, CA', 'Example City'):
+            self.answer(answer)
+        with self.assertRaises(ValueError):
+            self.answer('2025550142, invalid')
+        with self.connect() as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM identifier WHERE kind = 'phone'").fetchone()[0], 0)
+            self.assertEqual(ryd.primary_intake(con), ryd.INTAKE_QUESTIONS[3])
+
 
 if __name__ == "__main__":
     unittest.main()

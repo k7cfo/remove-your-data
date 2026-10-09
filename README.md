@@ -24,6 +24,8 @@ Workspace (`takedown.db` or paper log, evidence) goes **outside** this clone. Da
 
 ```bash
 python3 scripts/ryd.py init --workspace "$HOME/privacy-takedown"
+# Agent: record detected tools, then answer one question per turn with --answer.
+python3 scripts/ryd.py intake --workspace "$HOME/privacy-takedown" --tools "detected host tools"
 python3 scripts/ryd.py serve --workspace "$HOME/privacy-takedown"
 # report    http://127.0.0.1:8765/
 # roster    http://127.0.0.1:8765/roster
