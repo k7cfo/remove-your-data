@@ -452,6 +452,7 @@ Escalation, unless they say otherwise:
 - Same name, other region, no matching phone or street: leave it.
 - Professional / SoS / LinkedIn cards: file if the card reprints a **home** phone or **home** address **and** the host is not allowlisted. Skip generic company pages, articles, LinkedIn by default.
 - Standalone LinkedIn scrapers / professional people directories (job title, employer, work history, city of work only — no home address or personal phone): out of scope. Leave them. Do not file opt-outs or search-engine removals under this playbook.
+- Phone-number range / area-code directories (sites that list every number in a block, e.g. a whole exchange, with no names, addresses, or relatives attached): not a listing of the person. Do not file opt-outs or search-engine removals for them. Track only if a page ties the number to the subject by name.
 - `unconfirmed` family members: show on `/roster`, do not search or file.
 - `keep_host` / `keep_url`: never search-to-file, never SERP-hide.
 
