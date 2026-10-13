@@ -22,6 +22,7 @@ Checked from this repo's network on **2026-09-01**. Datacenter 403 is **not** de
 | BeenVerified | untested | https://www.beenverified.com/app/optout/search | 403 from datacenter. Email verify. |
 | TruePeopleSearch | untested | https://www.truepeoplesearch.com/removal | 403 from datacenter. `.com` and `.net` are different hosts. |
 | FastPeopleSearch | untested | https://www.fastpeoplesearch.com/removal | Same operator family as TruePeopleSearch. 403 from datacenter. |
+| FastBackgroundCheck | captcha human | https://www.fastbackgroundcheck.com/opt-out | Sister of FastPeopleSearch. CF challenge on curl; captcha opt-out. |
 | Radaris | untested | https://radaris.com/control/privacy | 403 from datacenter. Recheck name-index and regional mirrors. City-only teaser is not enough to refile. |
 | Open Data USA | defunct | — | Origin parked (SOA `lander.d.parity.domains`); TLS EOF; `optout@` has **no MX**. Cancel the letter. Leftover SERP waits until other live listings are down. |
 | PeopleFinders | untested | https://www.peoplefinders.com/opt-out | 403 / Turnstile common. `privacy@` has bounced. |
