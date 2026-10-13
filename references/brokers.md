@@ -13,6 +13,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list â
 | BeenVerified | https://www.beenverified.com/app/optout/search | Email verify. |
 | TruePeopleSearch | https://www.truepeoplesearch.com/removal | Datacenter IP often 403. File FastPeopleSearch too. `truepeoplesearch.net` is a different host; opt-out can be a Google Form that needs a signed-in consumer Google account. |
 | FastPeopleSearch | https://www.fastpeoplesearch.com/removal | Same operator family as TruePeopleSearch. |
+| FastBackgroundCheck | https://www.fastbackgroundcheck.com/opt-out | Sister of FastPeopleSearch. Datacenter curl often CF challenge; non-curl fetch can read pages. Opt-out = name+email+captcha then emailed form (~3 days). Relative pages can reprint subject phones. |
 | Radaris | https://radaris.com/control/privacy | Confirm email required. Recheck name-index and regional mirrors. |
 | Open Data USA | origin parked | **defunct.** No MX for `optout@`. Cancel the letter. Leftover SERP last-step. |
 | PeopleFinders | https://www.peoplefinders.com/opt-out | Public form may be Turnstile-blocked; `privacy@` has bounced. Log and move. |
