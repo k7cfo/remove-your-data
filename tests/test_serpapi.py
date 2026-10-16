@@ -70,6 +70,43 @@ class SerpApiTests(unittest.TestCase):
         self.assertFalse(any("site:" in (q.get("q") or q.get("p"))[0] for q in seen))
         self.assertEqual(ryd.serpapi_engines("Google, bing ,"), ["google", "bing"])
 
+    def test_monthly_cap_persists_and_stops(self):
+        import tempfile
+        calls = []
+
+        def opener(req, timeout=0):
+            calls.append(req.full_url)
+            return FakeResp(b'{"organic_results": []}')
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "serpapi-usage.json"
+            budget = ryd.SerpBudget(path, cap=3, month="2026-10")
+            err = io.StringIO()
+            with mock.patch("sys.stderr", err):
+                ryd.serpapi_check(IDENTS, ["google", "bing"], api_key="k", opener=opener, budget=budget)
+            self.assertEqual(len(calls), 3)
+            self.assertIn("monthly cap reached", err.getvalue())
+            again = ryd.SerpBudget(path, cap=3, month="2026-10")
+            self.assertEqual((again.used, again.left), (3, 0))
+            self.assertEqual(ryd.SerpBudget(path, cap=3, month="2026-11").used, 0)
+            self.assertEqual(ryd.SerpBudget(None, cap=50, remote_left=2).left, 2)
+
+    def test_cap_env_and_account(self):
+        self.assertEqual(ryd.serpapi_monthly_cap(""), 100)
+        self.assertEqual(ryd.serpapi_monthly_cap("40"), 40)
+        self.assertEqual(ryd.serpapi_monthly_cap("x"), 100)
+        ok = lambda req, timeout=0: FakeResp(b'{"total_searches_left": 7}')
+        self.assertEqual(ryd.serpapi_account_left("k", opener=ok), 7)
+
+        def boom(req, timeout=0):
+            raise OSError("down")
+        self.assertIsNone(ryd.serpapi_account_left("k", opener=boom))
+
+    def test_queries_deduped(self):
+        idents = IDENTS + [{"kind": "alias", "value": "jane  doe", "scan": 1}]
+        qs = ryd.serp_queries(idents)
+        self.assertEqual(len(qs), len({" ".join(q.lower().split()) for q in qs}))
+
 
 if __name__ == "__main__":
     unittest.main()

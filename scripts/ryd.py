@@ -730,7 +730,74 @@ def serpapi_engines(raw: str | None = None) -> list[str]:
 
 def serp_queries(idents: list[dict[str, Any]]) -> list[str]:
     """Name / name+city / name+street / phone queries; no site: fan-out (saves credits)."""
-    return [q for q in scan_pack(idents) if " site:" not in q]
+    out: list[str] = []
+    seen: set[str] = set()
+    for q in scan_pack(idents):
+        key = " ".join(q.lower().split())
+        if " site:" in q or key in seen:
+            continue
+        seen.add(key)
+        out.append(q)
+    return out
+
+
+SERPAPI_DEFAULT_MONTHLY_CAP = 100  # well under the free plan's 250/mo
+SERPAPI_USAGE_FILE = "serpapi-usage.json"
+
+
+class SerpBudget:
+    """Hard monthly search budget persisted in the workspace (never in the repo)."""
+
+    def __init__(self, path: Path | None, cap: int, month: str | None = None,
+                 remote_left: int | None = None) -> None:
+        self.path, self.cap = path, cap
+        self.month = month or utcnow().strftime("%Y-%m")
+        self.used = 0
+        self.remote_left = remote_left
+        if path and path.exists():
+            try:
+                data = json.loads(path.read_text())
+                if data.get("month") == self.month:
+                    self.used = int(data.get("used", 0))
+            except (ValueError, OSError):
+                pass
+
+    @property
+    def left(self) -> int:
+        left = max(0, self.cap - self.used)
+        if self.remote_left is not None:
+            left = min(left, max(0, self.remote_left))
+        return left
+
+    def spend(self) -> None:
+        self.used += 1
+        if self.remote_left is not None:
+            self.remote_left -= 1
+        if self.path:
+            write_private_text(self.path, json.dumps({"month": self.month, "used": self.used}))
+
+
+def serpapi_monthly_cap(raw: str | None = None) -> int:
+    raw = raw if raw is not None else os.environ.get("RYD_SERPAPI_MONTHLY_CAP", "")
+    try:
+        return max(0, int(raw)) if str(raw).strip() else SERPAPI_DEFAULT_MONTHLY_CAP
+    except ValueError:
+        return SERPAPI_DEFAULT_MONTHLY_CAP
+
+
+def serpapi_account_left(api_key: str, *, opener: Any = None, timeout: float = 15.0) -> int | None:
+    """Free account endpoint (does not consume a search). None if unavailable."""
+    try:
+        req = Request("https://serpapi.com/account.json?" + urlencode({"api_key": api_key}),
+                      headers={"User-Agent": "remove-your-data"})
+        with (opener or urlopen)(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for key in ("total_searches_left", "plan_searches_left"):
+            if isinstance(data.get(key), int):
+                return data[key]
+    except Exception:
+        return None
+    return None
 
 
 def serpapi_search(query: str, engine: str, api_key: str, *, timeout: float = 30.0,
@@ -752,7 +819,8 @@ def serpapi_search(query: str, engine: str, api_key: str, *, timeout: float = 30
 
 
 def serpapi_check(idents: list[dict[str, Any]], engines: list[str], *,
-                  api_key: str | None = None, opener: Any = None) -> list[dict[str, str]]:
+                  api_key: str | None = None, opener: Any = None,
+                  budget: SerpBudget | None = None) -> list[dict[str, str]]:
     """Return result URLs+snippets across engines. No key -> empty list (graceful no-op)."""
     api_key = api_key if api_key is not None else os.environ.get("SERPAPI_API_KEY", "").strip()
     if not api_key:
@@ -762,7 +830,14 @@ def serpapi_check(idents: list[dict[str, Any]], engines: list[str], *,
     seen: set[tuple[str, str]] = set()
     for query in serp_queries(idents):
         for engine in engines:
+            if budget is not None and budget.left <= 0:
+                print(f"# serpapi monthly cap reached ({budget.used}/{budget.cap} used in "
+                      f"{budget.month}); stopping. Raise RYD_SERPAPI_MONTHLY_CAP or wait "
+                      "for next month.", file=sys.stderr)
+                return results
             try:
+                if budget is not None:
+                    budget.spend()  # count before the call: SerpApi may bill it
                 rows = serpapi_search(query, engine, api_key, opener=opener)
             except Exception as exc:  # network/API errors must not break the loop
                 print(f"# serpapi {engine} error: {exc}", file=sys.stderr)
@@ -794,13 +869,18 @@ def cmd_serp_check(args: argparse.Namespace) -> int:
                   "only if the person said yes)", file=sys.stderr)
             return 0
         engines = serpapi_engines(args.engines)
+        api_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+        budget = SerpBudget(args.workspace / SERPAPI_USAGE_FILE, serpapi_monthly_cap(),
+                            remote_left=serpapi_account_left(api_key))
+        print(f"# serpapi budget: {budget.left} left this month (cap {budget.cap}, "
+              f"used {budget.used})", file=sys.stderr)
         for person in list_people(con):
             if args.person_id and person["id"] != args.person_id:
                 continue
             if not person.get("active", 1) or person.get("consent_basis") == "unconfirmed" \
                     or not person.get("intake_complete", 0):
                 continue
-            for row in serpapi_check(list_idents(con, person["id"]), engines):
+            for row in serpapi_check(list_idents(con, person["id"]), engines, api_key=api_key, budget=budget):
                 row["person_id"] = person["id"]
                 print(json.dumps(row, ensure_ascii=False))
     return 0
