@@ -30,7 +30,7 @@ python3 scripts/ryd.py serve --workspace "$HOME/privacy-takedown"
 # settings  http://127.0.0.1:8765/settings
 ```
 
-Optional, off by default: multi-engine leftover watch via SerpApi (`SERPAPI_API_KEY` + `ryd.py serp-check --serpapi`). Watch-only; see [`references/search.md`](references/search.md).
+Optional, off by default: multi-engine leftover watch via SerpApi (`SERPAPI_API_KEY` + `ryd.py serp-check --serpapi`). Watch-only; see [`references/search.md`](references/search.md). No key? Sign up free (250 searches/mo, email + phone verify) at https://serpapi.com/users/sign_up, copy the key from https://serpapi.com/manage-api-key, and set `SERPAPI_API_KEY`. SerpApi's official MCP ([serpapi-mcp](https://github.com/serpapi/serpapi-mcp), `https://mcp.serpapi.com/mcp` with a Bearer key) also works. SearchAPI.io is a different service; its keys will not work here.
 
 ## If you are a human
 

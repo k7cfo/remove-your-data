@@ -245,6 +245,7 @@ Default `dedicated`:
 `max` (harder, some filings will fail):
 
 - Isolated profile + prefer residential / non-datacenter IP. Datacenter IPs get Turnstile / 403 on TruePeopleSearch, FastPeopleSearch, Whitepages.
+- Optional SerpApi multi-engine check is opt-in and off by default. If the person wants it and `SERPAPI_API_KEY` is not set, prompt them: (1) sign up at https://serpapi.com/users/sign_up (email + phone verify, free 250 searches/mo); (2) copy the key from https://serpapi.com/manage-api-key; (3) provide it as `SERPAPI_API_KEY` (env/secret store; never print it). Option: SerpApi's official MCP (github.com/serpapi/serpapi-mcp, `https://mcp.serpapi.com/mcp` with `Authorization: Bearer <key>`). Declined → skip. SearchAPI.io is a different service; its keys will not work here. Details: `references/search.md`.
 - Prefer keyless / self-hosted search (SearXNG, DuckDuckGo HTML, browser against the search engine). Do not send the person's name to Exa / Tavily / SerpAPI if they refused third-party search.
 - Do not paste identifiers into a cloud LLM dashboard they do not already trust. Run this skill in their local agent.
 - No household filings, no extra identifiers.
