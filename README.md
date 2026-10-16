@@ -30,6 +30,8 @@ python3 scripts/ryd.py serve --workspace "$HOME/privacy-takedown"
 # settings  http://127.0.0.1:8765/settings
 ```
 
+Optional, off by default: multi-engine leftover watch via SerpApi (`SERPAPI_API_KEY` + `ryd.py serp-check --serpapi`). Watch-only; see [`references/search.md`](references/search.md).
+
 ## If you are a human
 
 Paste this URL into your coding agent (Claude, Codex, Pi, OMP, Hermes, OpenClaw, Cursor, Grok, or anything that will clone a repo and read `AGENTS.md` / `SKILL.md`):

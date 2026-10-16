@@ -19,6 +19,20 @@ serp-hosts.txt
 *.sqlite-wal
 *.sqlite-shm
 
+# Case data / secrets / SERP usage
+data-broker-*.csv
+data-broker-leftovers.md
+*needs-human*.csv
+takedown-workspace/
+workspace/
+*.key
+*.pem
+serpapi-usage.json
+serp-cache/
+*.serp.json
+evidence/**/*.html
+*.html.dump
+
 .DS_Store
 
 __pycache__/

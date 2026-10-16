@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import json
 import os
 import sqlite3
 import stat
@@ -16,7 +17,8 @@ from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
+from urllib.request import Request, urlopen
 
 SCHEMA = Path(__file__).resolve().parent / "schema.sql"
 REPO = SCHEMA.parent.parent
@@ -705,6 +707,183 @@ def scan_pack(idents: list[dict[str, Any]]) -> list[str]:
     for phone in phones:
         add(phone)
     return queries
+
+
+# --- Optional SerpApi multi-engine check (opt-in, default off, watch-only) ---
+SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
+SERPAPI_DEFAULT_ENGINES = ("google", "bing")
+# Engines whose query parameter is not `q`.
+SERPAPI_QUERY_PARAM = {"yahoo": "p", "yandex": "text", "naver": "query", "baidu": "q"}
+
+
+def serpapi_enabled(flag: bool = False) -> bool:
+    if not os.environ.get("SERPAPI_API_KEY", "").strip():
+        return False
+    return flag or os.environ.get("RYD_SERP_PROVIDER", "").strip().lower() == "serpapi"
+
+
+def serpapi_engines(raw: str | None = None) -> list[str]:
+    raw = raw or os.environ.get("SERPAPI_ENGINES", "")
+    engines = [e.strip().lower() for e in raw.split(",") if e.strip()]
+    return engines or list(SERPAPI_DEFAULT_ENGINES)
+
+
+def serp_queries(idents: list[dict[str, Any]]) -> list[str]:
+    """Name / name+city / name+street / phone queries; no site: fan-out (saves credits)."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for q in scan_pack(idents):
+        key = " ".join(q.lower().split())
+        if " site:" in q or key in seen:
+            continue
+        seen.add(key)
+        out.append(q)
+    return out
+
+
+SERPAPI_DEFAULT_MONTHLY_CAP = 100  # well under the free plan's 250/mo
+SERPAPI_USAGE_FILE = "serpapi-usage.json"
+
+
+class SerpBudget:
+    """Hard monthly search budget persisted in the workspace (never in the repo)."""
+
+    def __init__(self, path: Path | None, cap: int, month: str | None = None,
+                 remote_left: int | None = None) -> None:
+        self.path, self.cap = path, cap
+        self.month = month or utcnow().strftime("%Y-%m")
+        self.used = 0
+        self.remote_left = remote_left
+        if path and path.exists():
+            try:
+                data = json.loads(path.read_text())
+                if data.get("month") == self.month:
+                    self.used = int(data.get("used", 0))
+            except (ValueError, OSError):
+                pass
+
+    @property
+    def left(self) -> int:
+        left = max(0, self.cap - self.used)
+        if self.remote_left is not None:
+            left = min(left, max(0, self.remote_left))
+        return left
+
+    def spend(self) -> None:
+        self.used += 1
+        if self.remote_left is not None:
+            self.remote_left -= 1
+        if self.path:
+            write_private_text(self.path, json.dumps({"month": self.month, "used": self.used}))
+
+
+def serpapi_monthly_cap(raw: str | None = None) -> int:
+    raw = raw if raw is not None else os.environ.get("RYD_SERPAPI_MONTHLY_CAP", "")
+    try:
+        return max(0, int(raw)) if str(raw).strip() else SERPAPI_DEFAULT_MONTHLY_CAP
+    except ValueError:
+        return SERPAPI_DEFAULT_MONTHLY_CAP
+
+
+def serpapi_account_left(api_key: str, *, opener: Any = None, timeout: float = 15.0) -> int | None:
+    """Free account endpoint (does not consume a search). None if unavailable."""
+    try:
+        req = Request("https://serpapi.com/account.json?" + urlencode({"api_key": api_key}),
+                      headers={"User-Agent": "remove-your-data"})
+        with (opener or urlopen)(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for key in ("total_searches_left", "plan_searches_left"):
+            if isinstance(data.get(key), int):
+                return data[key]
+    except Exception:
+        return None
+    return None
+
+
+def serpapi_search(query: str, engine: str, api_key: str, *, timeout: float = 30.0,
+                   opener: Any = None) -> list[dict[str, str]]:
+    params = {"engine": engine, SERPAPI_QUERY_PARAM.get(engine, "q"): query, "api_key": api_key}
+    req = Request(f"{SERPAPI_ENDPOINT}?{urlencode(params)}", headers={"User-Agent": "remove-your-data"})
+    with (opener or urlopen)(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if data.get("error"):
+        raise RuntimeError(str(data["error"]))
+    out = []
+    for row in data.get("organic_results") or []:
+        link = row.get("link") or ""
+        if not safe_http_url(link):
+            continue
+        out.append({"engine": engine, "query": query, "url": link,
+                    "title": row.get("title") or "", "snippet": row.get("snippet") or ""})
+    return out
+
+
+def serpapi_check(idents: list[dict[str, Any]], engines: list[str], *,
+                  api_key: str | None = None, opener: Any = None,
+                  budget: SerpBudget | None = None) -> list[dict[str, str]]:
+    """Return result URLs+snippets across engines. No key -> empty list (graceful no-op)."""
+    api_key = api_key if api_key is not None else os.environ.get("SERPAPI_API_KEY", "").strip()
+    if not api_key:
+        return []
+    keep = {normalize_ident(r["kind"], r["value"]) for r in idents if r["kind"] in KEEP_KINDS}
+    results: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for query in serp_queries(idents):
+        for engine in engines:
+            if budget is not None and budget.left <= 0:
+                print(f"# serpapi monthly cap reached ({budget.used}/{budget.cap} used in "
+                      f"{budget.month}); stopping. Raise RYD_SERPAPI_MONTHLY_CAP or wait "
+                      "for next month.", file=sys.stderr)
+                return results
+            try:
+                if budget is not None:
+                    budget.spend()  # count before the call: SerpApi may bill it
+                rows = serpapi_search(query, engine, api_key, opener=opener)
+            except Exception as exc:  # network/API errors must not break the loop
+                print(f"# serpapi {engine} error: {exc}", file=sys.stderr)
+                continue
+            for row in rows:
+                host = normalize_ident("keep_host", row["url"])
+                if host in keep or row["url"].rstrip("/").lower() in keep:
+                    continue
+                key = (row["engine"], row["url"])
+                if key not in seen:
+                    seen.add(key)
+                    results.append(row)
+    return results
+
+
+def cmd_serp_check(args: argparse.Namespace) -> int:
+    if not serpapi_enabled(args.serpapi):
+        print("# serp-check: off (opt in with --serpapi or RYD_SERP_PROVIDER=serpapi, "
+              "and set SERPAPI_API_KEY)", file=sys.stderr)
+        return 0
+    db = args.workspace / "takedown.db"
+    with connect(db, readonly=True) as con:
+        settings = get_settings(con)
+        if settings.get("paused") in ("1", "true", "yes"):
+            print("# paused=1", file=sys.stderr)
+            return 0
+        if settings.get("anonymity_mode") == "max" and not args.allow_max:
+            print("# anonymity_mode=max: not sending names to SerpApi (pass --allow-max "
+                  "only if the person said yes)", file=sys.stderr)
+            return 0
+        engines = serpapi_engines(args.engines)
+        api_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+        budget = SerpBudget(args.workspace / SERPAPI_USAGE_FILE, serpapi_monthly_cap(),
+                            remote_left=serpapi_account_left(api_key))
+        print(f"# serpapi budget: {budget.left} left this month (cap {budget.cap}, "
+              f"used {budget.used})", file=sys.stderr)
+        for person in list_people(con):
+            if args.person_id and person["id"] != args.person_id:
+                continue
+            if not person.get("active", 1) or person.get("consent_basis") == "unconfirmed" \
+                    or not person.get("intake_complete", 0):
+                continue
+            for row in serpapi_check(list_idents(con, person["id"]), engines, api_key=api_key, budget=budget):
+                row["person_id"] = person["id"]
+                print(json.dumps(row, ensure_ascii=False))
+    return 0
 
 
 def load_report(
@@ -2067,6 +2246,14 @@ def build_parser() -> argparse.ArgumentParser:
     pk.add_argument("--workspace", type=Path, required=True)
     pk.add_argument("--person-id", type=int)
     pk.set_defaults(func=cmd_pack)
+
+    sc = sub.add_parser("serp-check", help="opt-in SerpApi multi-engine leftover check (watch-only)")
+    sc.add_argument("--workspace", type=Path, required=True)
+    sc.add_argument("--person-id", type=int)
+    sc.add_argument("--serpapi", action="store_true", help="opt in (needs SERPAPI_API_KEY)")
+    sc.add_argument("--engines", help="comma list, e.g. google,bing,yahoo,duckduckgo")
+    sc.add_argument("--allow-max", action="store_true")
+    sc.set_defaults(func=cmd_serp_check)
 
     st = sub.add_parser("settings", help="show or change household scan routine")
     st.add_argument("--workspace", type=Path, required=True)
