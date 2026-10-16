@@ -64,6 +64,21 @@ Do not sign the user up for a new paid search API.
 
 For `anonymity_mode=max`, do not send the name to a third-party search API unless they said yes. Keyless + isolated browser only.
 
+### Optional: SerpApi multi-engine check (opt-in, default off)
+
+`ryd.py serp-check` queries [SerpApi](https://serpapi.com) across several engines for each consented person's name, name+city/street, and phones (no `site:` fan-out, to save credits) and prints one JSON line per hit (`engine`, `query`, `url`, `title`, `snippet`, `person_id`). Use it to feed the leftover / SERP-ghost and new-host diff above. `keep_host` / `keep_url` hits are dropped.
+
+- Off unless **both** `SERPAPI_API_KEY` is set **and** you pass `--serpapi` (or `RYD_SERP_PROVIDER=serpapi`). No key → silent no-op.
+- Engines: `--engines google,bing,yahoo,duckduckgo` or `SERPAPI_ENGINES` (default `google,bing`). Also works: `yandex`, `baidu`, `naver`. Each query × engine = 1 search credit (free tier: 250/mo).
+- **Hard monthly budget** (free-plan safe): default cap **100 searches/month** (`RYD_SERPAPI_MONTHLY_CAP`), counted in `$WORKSPACE/serpapi-usage.json` (never in the repo; resets each UTC month). When the cap is hit it stops with a clear message. If SerpApi's free `account.json` endpoint (does not use a search) reports fewer searches left, the lower number wins. Queries are deduped.
+- Math: searches/month = queries × engines × runs/month. Example: 1 person with 1 name, 1 city, 2 phones (each phone also as dashed form) ≈ 6 queries × 2 engines (google,bing) × 4 weekly runs ≈ **48/mo**. Two people ≈ 96 — at the 100 cap, well under 250. Add engines or people → lower cadence or raise the cap knowingly.
+- `anonymity_mode=max` refuses unless `--allow-max` (the person said yes to a third-party API).
+- **Watch-only.** It never files anything. SERP removal stays the last step, after the origin is gone.
+
+```bash
+SERPAPI_API_KEY=... python3 scripts/ryd.py serp-check --workspace "$HOME/privacy-takedown" --serpapi --engines google,bing,duckduckgo
+```
+
 ## Query pack
 
 Run for legal name and each alias (`ryd.py pack` emits this from the roster):
