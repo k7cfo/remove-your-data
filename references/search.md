@@ -68,7 +68,17 @@ For `anonymity_mode=max`, do not send the name to a third-party search API unles
 
 `ryd.py serp-check` queries [SerpApi](https://serpapi.com) across several engines for each consented person's name, name+city/street, and phones (no `site:` fan-out, to save credits) and prints one JSON line per hit (`engine`, `query`, `url`, `title`, `snippet`, `person_id`). Use it to feed the leftover / SERP-ghost and new-host diff above. `keep_host` / `keep_url` hits are dropped.
 
-- Off unless **both** `SERPAPI_API_KEY` is set **and** you pass `--serpapi` (or `RYD_SERP_PROVIDER=serpapi`). No key → silent no-op.
+**No key yet? Ask the person (never sign up for them):**
+
+1. Sign up at https://serpapi.com/users/sign_up (email + phone verification; free plan = 250 searches/month).
+2. Copy the private API key from https://serpapi.com/manage-api-key.
+3. Provide it as the `SERPAPI_API_KEY` environment variable (secret store / `.env`, not chat or the repo). Never print or log it.
+
+Alternative: SerpApi's official MCP server ([github.com/serpapi/serpapi-mcp](https://github.com/serpapi/serpapi-mcp)), hosted at `https://mcp.serpapi.com/mcp` with header `Authorization: Bearer <SERPAPI_API_KEY>`. Same credits; same watch-only rules.
+
+If they decline, skip it; the keyless pack is enough. Do not re-ask every pass.
+
+- Off unless **both** `SERPAPI_API_KEY` is set **and** you pass `--serpapi` (or `RYD_SERP_PROVIDER=serpapi`). No key → silent no-op (the agent should then offer the steps above, once).
 - Engines: `--engines google,bing,yahoo,duckduckgo` or `SERPAPI_ENGINES` (default `google,bing`). Also works: `yandex`, `baidu`, `naver`. Each query × engine = 1 search credit (free tier: 250/mo).
 - **Hard monthly budget** (free-plan safe): default cap **100 searches/month** (`RYD_SERPAPI_MONTHLY_CAP`), counted in `$WORKSPACE/serpapi-usage.json` (never in the repo; resets each UTC month). When the cap is hit it stops with a clear message. If SerpApi's free `account.json` endpoint (does not use a search) reports fewer searches left, the lower number wins. Queries are deduped.
 - Math: searches/month = queries × engines × runs/month. Example: 1 person with 1 name, 1 city, 2 phones (each phone also as dashed form) ≈ 6 queries × 2 engines (google,bing) × 4 weekly runs ≈ **48/mo**. Two people ≈ 96 — at the 100 cap, well under 250. Add engines or people → lower cadence or raise the cap knowingly.
