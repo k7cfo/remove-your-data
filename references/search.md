@@ -74,7 +74,7 @@ For `anonymity_mode=max`, do not send the name to a third-party search API unles
 2. Copy the private API key from https://serpapi.com/manage-api-key.
 3. Provide it as the `SERPAPI_API_KEY` environment variable (secret store / `.env`, not chat or the repo). Never print or log it.
 
-Alternative: SerpApi's official MCP server ([github.com/serpapi/serpapi-mcp](https://github.com/serpapi/serpapi-mcp)), hosted at `https://mcp.serpapi.com/mcp` with header `Authorization: Bearer <SERPAPI_API_KEY>`. Same credits; same watch-only rules.
+Alternative: SerpApi's official MCP server ([github.com/serpapi/serpapi-mcp](https://github.com/serpapi/serpapi-mcp)), hosted at `https://mcp.serpapi.com/mcp` with header `Authorization: Bearer <SERPAPI_API_KEY>`. Same credits; same watch-only rules. SearchAPI.io is a different service; its keys will not work here.
 
 If they decline, skip it; the keyless pack is enough. Do not re-ask every pass.
 
