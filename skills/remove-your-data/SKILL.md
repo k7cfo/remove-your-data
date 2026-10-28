@@ -1,6 +1,6 @@
 ---
 name: remove-your-data
-license: AGPL-3.0-or-later
+license: Apache-2.0
 description: >
   Remove a person's personal information from people-search sites and data
   brokers worldwide without paying deletion services. Use when the user wants
@@ -20,5 +20,9 @@ The playbook is the **repository root**:
 1. Read [`../../AGENTS.md`](../../AGENTS.md)
 2. Read [`../../SKILL.md`](../../SKILL.md) and follow it
 3. Load `../../references/`, `../../scripts/`, `../../templates/` from the repo root
+
+Session start: run `python3 scripts/ryd.py recap --workspace "$WORKSPACE"` first, every session and after any context loss. Present results in chat as the card from `ryd.py report --image`, not as a dashboard link.
+
+Author: Nick Newsom (@k7cfo). Apache-2.0; keep `NOTICE` with any copy.
 
 Do not invent a process from this stub.

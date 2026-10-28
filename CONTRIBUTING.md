@@ -1,12 +1,10 @@
 # Contributing
 
-PRs on **this** repo are the product. Broker URLs, legal clocks, and agent gotchas go stale. Open a pull request here. Do not publish a fork.
-
-GitHub's Fork button is only the mechanic for sending that PR. Ignore the fork afterward.
+PRs on this repo keep everyone's fixes in one place: broker URLs, legal clocks, and agent gotchas go stale. Open a pull request here. You are also free to fork and publish your own version; please keep `NOTICE` and `LICENSE`.
 
 ## License of contributions
 
-This project is AGPL-3.0-or-later. By opening a pull request you license your contribution under AGPL-3.0-or-later (inbound = outbound). Keep new files under the same license.
+This project is Apache-2.0. By opening a pull request you license your contribution under Apache-2.0 (inbound = outbound; Apache-2.0 section 5). New source files carry the same SPDX header as the existing ones.
 
 No CLA. Add a Developer Certificate of Origin sign-off on each commit:
 
@@ -16,7 +14,7 @@ Signed-off-by: Your Name <you@example.com>
 
 (`git commit -s`)
 
-You certify the contribution is yours to give, or that you have the right to submit it under the AGPL.
+You certify the contribution is yours to give, or that you have the right to submit it under Apache-2.0.
 
 ## What to change
 

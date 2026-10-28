@@ -4,14 +4,17 @@ You are running **remove-your-data**. This repository is the skill. Humans paste
 
 This is not legal advice.
 
+Author: Nick Newsom (@k7cfo). License: Apache-2.0 (see `LICENSE`, `NOTICE`). Forks are welcome; keep `NOTICE`.
+
 ## Boot (do this now)
 
+0. **Run `python3 scripts/ryd.py recap --workspace "$WORKSPACE"` first** in every session and after any context loss (once a workspace exists). It is read-only. If it is not in the recap, say "not recorded".
 1. Read [`SKILL.md`](SKILL.md) in full. That is the playbook. Do not improvise a parallel process.
 2. **§0 capability.** List tools this host already has (`python3`, folder, browser, search, mailbox, scheduler). Do not install software they did not ask for. Missing a tool is not a stop: use what you have, or coach the human (`SKILL.md` §0). Python is optional.
 3. If the roster has no primary person, run **SKILL.md §1 intake 1:1** and **stop**. One question per turn. Do not dump the questionnaire. Roster goes in SQLite (`/roster` or `ryd.py`) **or** `templates/paper-log.md`. Do not search until residency is known **and** intake Q9 is done.
 4. If they live in California, **CA DROP first** — one request per roster person.
 5. Put the workspace **outside this git clone**. Never commit `takedown.db`, paper logs, evidence, DROP IDs, or listing URLs that identify a real person.
-6. After a pass: `ryd.py serve` if Python works (report `/`, roster `/roster`, settings `/settings`). Otherwise the paper log is the report. Agents use `ryd.py settings` instead of scraping the page when it exists.
+6. After a pass: present results in chat as the generated card (`ryd.py report --image`, plus `report` markdown; `--text` if the host cannot show images). Do not point the user to the dashboard instead. `ryd.py serve` (`/`, `/roster`, `/settings`) is an optional read-only view. Otherwise the paper log is the report. Agents use `ryd.py settings` instead of scraping the page when it exists.
 
 ## Tools
 
@@ -30,7 +33,11 @@ Use whatever this host already has. Do not install software they did not ask for
 - Impersonate anyone
 - Loop Turnstile / datacenter-blocked forms
 - Bind the dashboard off `127.0.0.1`
-- Publish a fork of this skill. Open a **pull request on this repo**. Broker URLs and clocks go stale; PRs are how it stays good.
+- Put addresses, phones, emails, listing URLs, or request ids in chat reports or cards
+
+## Reporting
+
+Chat is the interface. `recap` first (session start, after context loss); `report --image` to show results as a status card with markdown/text/JSON fallbacks. Cards carry vendor names, statuses, counts, and relative due dates only. Never claim a listing is gone or filed unless the log shows it. Details: `SKILL.md` "Session start and reporting".
 
 ## Map
 
@@ -47,7 +54,8 @@ Use whatever this host already has. Do not install software they did not ask for
 | `templates/paper-log.md` | No-Python workspace (roster, CSV log, clocks) |
 | `docs/PRIVACY.md` | What leaves the machine |
 | `scripts/schema.sql` | Legal log schema (`relist_90d`, roster `keep_host` / `keep_url`) |
-| `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` |
+| `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` / `recap` / `report` |
+| `scripts/ryd_report.py` | Privacy-safe card model and renderers for `recap` / `report` (md, text, json, PNG) |
 | `scripts/registry_pull.py` | CA registry CSV hostname diff — not a spray list |
 | `CONTRIBUTING.md` | How to PR |
 | `CHANGELOG.md` | What shipped |

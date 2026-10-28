@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Nick Newsom (@k7cfo) — https://github.com/k7cfo/remove-your-data
 """Diff the California data-broker registry CSV against references/brokers.md.
 
 Stdlib only. Prints hostnames in the registry that are not already in the

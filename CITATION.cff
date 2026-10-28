@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "remove-your-data"
+type: software
+authors:
+  - name: "Nick Newsom (@k7cfo)"
+repository-code: "https://github.com/k7cfo/remove-your-data"
+license: Apache-2.0
+version: "0.1.0"
+abstract: "Agent skill for removing personal data from people-search sites and data brokers without paying deletion services."
