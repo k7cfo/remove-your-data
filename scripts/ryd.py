@@ -13,7 +13,7 @@ import os
 import sqlite3
 import stat
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -2394,6 +2394,456 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+# ---------------------------------------------------------------- US state law packs
+
+
+def _laws_module():
+    here = str(Path(__file__).resolve().parent)
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import ryd_laws  # noqa: PLC0415
+    return ryd_laws
+
+
+def local_today() -> date:
+    return datetime.now().date()
+
+
+def law_person(con: sqlite3.Connection, person_id: int, *, filing: bool) -> dict[str, Any]:
+    row = con.execute("SELECT * FROM person WHERE id = ?", (person_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"no person {person_id}")
+    person = dict(row)
+    if filing:
+        if not person.get("active", 1):
+            raise ValueError("person is inactive")
+        if person.get("consent_basis") == "unconfirmed":
+            raise ValueError("consent is unconfirmed; confirm it on the roster first")
+        if not person.get("intake_complete", 0):
+            raise ValueError("intake is incomplete; finish intake first")
+    return person
+
+
+def record_attestation(con: sqlite3.Connection, person_id: int, region: str,
+                       attested_on: str | None = None) -> int:
+    laws = _laws_module()
+    region = (region or "").upper()
+    if region not in laws.US_REGIONS:
+        raise ValueError(f"{region or '(none)'} is not a US state or DC")
+    person = law_person(con, person_id, filing=False)
+    basis = person.get("consent_basis") or "self"
+    if not person.get("active", 1) or basis == "unconfirmed":
+        raise ValueError("attestation needs an active person with confirmed consent")
+    on = laws.parse_date(attested_on or local_today().isoformat()).isoformat()
+    who = {"self": "The person", "parent_of_minor": "The parent or guardian",
+           "authorized_agent": "The authorized agent, on the person's word,"}[basis]
+    statement = f"{who} stated the person is a resident of {laws.US_REGIONS[region]}."
+    now = utc_iso()
+    con.execute(
+        "UPDATE residency_attestation SET revoked_at_utc = ? "
+        "WHERE person_id = ? AND revoked_at_utc IS NULL",
+        (now, person_id),
+    )
+    con.execute(
+        "INSERT INTO residency_attestation (person_id, country, region, attested_by, statement,"
+        " attested_on, created_at_utc) VALUES (?, 'US', ?, ?, ?, ?, ?)",
+        (person_id, region, basis, statement, on, now),
+    )
+    return int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+
+def current_attestation(con: sqlite3.Connection, person_id: int) -> dict[str, Any] | None:
+    row = con.execute(
+        "SELECT * FROM residency_attestation WHERE person_id = ? AND revoked_at_utc IS NULL "
+        "ORDER BY id DESC LIMIT 1",
+        (person_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def broker_id_for(con: sqlite3.Connection, name: str) -> int:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("controller name is required")
+    row = con.execute("SELECT id FROM broker WHERE name = ?", (name,)).fetchone()
+    if row:
+        return int(row[0])
+    con.execute("INSERT INTO broker (name, channel) VALUES (?, 'privacy_request')", (name,))
+    return int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+
+def plan_law_request(
+    con: sqlite3.Connection,
+    person_id: int,
+    *,
+    rights: list[str],
+    region: str | None = None,
+    on: date | None = None,
+    today: date | None = None,
+    controller_covered: bool = False,
+    force_universal: bool = False,
+    packs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    laws = _laws_module()
+    packs = packs if packs is not None else laws.load_packs()
+    today = today or local_today()
+    on = on or today
+    person = law_person(con, person_id, filing=False)
+    att = current_attestation(con, person_id)
+    region = (region or (att or {}).get("region") or person.get("residency_region") or "").upper()
+    if (person.get("residency_country") or "US").upper() != "US" and not att:
+        raise ValueError("person is not recorded as US-resident; use the non-US path")
+    attested = bool(att and att["region"] == region)
+    sel = laws.select_pack(packs, region, on=on, today=today, attested=attested,
+                           controller_covered=controller_covered, force_universal=force_universal)
+    sender = laws.CONSENT_TO_SENDER.get(person.get("consent_basis") or "self", "self")
+    warnings = list(sel.warnings)
+    if att and att["region"] != region:
+        warnings.append(f"Attested region {att['region']} differs from {region}.")
+    if (person.get("residency_region") or "").upper() not in ("", region):
+        warnings.append(f"Roster residency_region {person.get('residency_region')} differs from {region}.")
+    blocked, unknown = laws.agent_check(sel.pack, rights, sender)
+    if blocked:
+        warnings.append(f"Agent may not submit under this law: {', '.join(blocked)}. Person sends those, or use --universal.")
+    if unknown:
+        warnings.append(f"unverified: whether an agent may submit {', '.join(unknown)} under this law.")
+    if not sel.universal and "delete" in rights:
+        note = sel.pack["deletion_scope"].get("note")
+        if note:
+            warnings.append(note)
+    preview = [] if sel.universal else laws.compute_clocks(sel.pack, on, rights)
+    return {
+        "person_id": person_id, "region": region, "pack": sel.pack_ref,
+        "universal": sel.universal, "reason": sel.reason, "rights": rights,
+        "sender": sender, "attestation_id": att["id"] if attested else None,
+        "warnings": warnings, "blocked": blocked,
+        "assumptions": laws.assumptions(sel, sender=sender, controller_covered=controller_covered),
+        "clocks_if_received": preview, "_selection": sel,
+    }
+
+
+def _insert_request_clock(con: sqlite3.Connection, req: dict[str, Any], clk: dict[str, Any],
+                          role: str) -> int:
+    notes = (
+        f"privacy_request #{req['id']}; pack {req['pack_id']}@{req['pack_version']}; "
+        f"residency attestation #{req['attestation_id']}; receipt {clk['start']}; "
+        f"{clk['days']} {clk['day_type']} days; date-level clock (end of day UTC); "
+        "assumes controller is subject to the law"
+    )
+    con.execute(
+        "INSERT INTO clock (person_id, broker_id, kind, legal_basis, started_at_utc, due_at_utc,"
+        " status, notes) VALUES (?, ?, 'legal_response', ?, ?, ?, 'open', ?)",
+        (req["person_id"], req["broker_id"],
+         f"{req['pack_id']}@{req['pack_version']} {clk['name']} ({clk['cite']})",
+         f"{clk['start']}T00:00:00Z", f"{clk['due']}T23:59:59Z", notes),
+    )
+    cid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+    con.execute("INSERT INTO privacy_request_clock (request_id, clock_id, role) VALUES (?, ?, ?)",
+                (req["id"], cid, role))
+    return cid
+
+
+def create_law_request(
+    con: sqlite3.Connection,
+    person_id: int,
+    controller: str,
+    *,
+    rights: list[str],
+    on: date | None = None,
+    today: date | None = None,
+    controller_covered: bool = False,
+    force_universal: bool = False,
+    received_on: str | None = None,
+    packs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    laws = _laws_module()
+    person = law_person(con, person_id, filing=True)
+    plan = plan_law_request(con, person_id, rights=rights, on=on, today=today,
+                            controller_covered=controller_covered,
+                            force_universal=force_universal, packs=packs)
+    sel = plan["_selection"]
+    try:
+        tid, text = laws.render_request(sel, controller=controller.strip(), name=person["legal_name"],
+                                        rights=rights, sender=plan["sender"])
+    except laws.LawError as exc:
+        raise ValueError(str(exc)) from exc
+    bid = broker_id_for(con, controller)
+    pack = sel.pack
+    con.execute(
+        "INSERT INTO privacy_request (person_id, broker_id, attestation_id, kind, region, pack_id,"
+        " pack_version, law_version, universal, selection_reason, rights, sender, template_id,"
+        " rendered_text, rendered_sha256, assumptions, created_at_utc)"
+        " VALUES (?, ?, ?, 'request', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (person_id, bid, plan["attestation_id"], plan["region"], pack["pack_id"],
+         pack["pack_version"], (pack.get("law") or {}).get("law_version"), int(sel.universal),
+         sel.reason, json.dumps(rights), plan["sender"], tid, text, laws.sha256_text(text),
+         json.dumps(plan["assumptions"]), utc_iso()),
+    )
+    rid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+    out = {"id": rid, "text": text, "plan": plan, "clocks": []}
+    if received_on:
+        out["clocks"] = law_request_event(con, rid, "received", received_on, packs=packs)["clocks"]
+    return out
+
+
+def get_law_request(con: sqlite3.Connection, request_id: int) -> dict[str, Any]:
+    row = con.execute("SELECT * FROM privacy_request WHERE id = ?", (request_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"no privacy request {request_id}")
+    return dict(row)
+
+
+def _tracking_pack(con: sqlite3.Connection, req: dict[str, Any],
+                   packs: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+    """The pack to count clocks with, or (None, reason) when no legal clock may be opened."""
+    if req["universal"]:
+        return None, "voluntary request; no statutory clock"
+    pack = packs.get(req["pack_id"])
+    if not pack or pack.get("pack_version") != req["pack_version"]:
+        return None, (f"pack {req['pack_id']}@{req['pack_version']} is no longer the loaded version; "
+                      "re-plan before tracking a legal deadline")
+    att = con.execute(
+        "SELECT revoked_at_utc FROM residency_attestation WHERE id = ?", (req["attestation_id"],)
+    ).fetchone() if req["attestation_id"] else None
+    if att is None:
+        return None, "no residency attestation on this request"
+    return pack, ""
+
+
+def law_request_event(con: sqlite3.Connection, request_id: int, event: str, on: str,
+                      packs: dict[str, Any] | None = None) -> dict[str, Any]:
+    laws = _laws_module()
+    packs = packs if packs is not None else laws.load_packs()
+    day = laws.parse_date(on).isoformat()
+    req = get_law_request(con, request_id)
+    rights = json.loads(req["rights"])
+    result: dict[str, Any] = {"request_id": request_id, "event": event, "clocks": [], "note": ""}
+    if event == "received":
+        if req["received_on"]:
+            raise ValueError(f"request {request_id} already has a receipt date {req['received_on']}")
+        con.execute("UPDATE privacy_request SET received_on = ? WHERE id = ?", (day, request_id))
+        req["received_on"] = day
+        pack, why = _tracking_pack(con, req, packs)
+        if pack is None:
+            result["note"] = why
+            return result
+        if req["kind"] == "appeal":
+            clocks = [laws.appeal_clock(pack, day)]
+        else:
+            clocks = laws.compute_clocks(pack, day, rights)
+        for clk in clocks:
+            _insert_request_clock(con, req, clk, clk["name"])
+        result["clocks"] = clocks
+        return result
+    if event == "extended":
+        if not req["received_on"]:
+            raise ValueError("record the receipt date first")
+        pack, why = _tracking_pack(con, req, packs)
+        if pack is None:
+            result["note"] = why
+            return result
+        if req["kind"] == "appeal":
+            if not pack["clocks"]["appeal"].get("extension"):
+                raise ValueError(f"{pack['law']['name']} has no appeal extension")
+            clocks = [laws.appeal_clock(pack, req["received_on"], extended=True)]
+            replace = ("appeal",)
+        else:
+            if not laws.extension_allowed(pack, req["received_on"], day):
+                raise ValueError("extension notice came after the initial response period; "
+                                 "the original deadline stands")
+            clocks = [c for c in laws.compute_clocks(pack, req["received_on"], rights, extended=True)
+                      if c["name"] == "extended_response"]
+            replace = ("response",)
+        con.execute(
+            "UPDATE clock SET status = 'done', notes = COALESCE(notes, '') || ? WHERE id IN ("
+            " SELECT clock_id FROM privacy_request_clock WHERE request_id = ? AND role IN ("
+            + ",".join("?" * len(replace)) + ")) AND status IN ('open', 'overdue')",
+            (f"; superseded by extension noticed {day}", request_id, *replace),
+        )
+        con.execute("UPDATE privacy_request SET extended_on = ? WHERE id = ?", (day, request_id))
+        for clk in clocks:
+            _insert_request_clock(con, req, clk, clk["name"])
+        result["clocks"] = clocks
+        return result
+    if event == "closed":
+        con.execute(
+            "UPDATE clock SET status = 'done' WHERE id IN (SELECT clock_id FROM privacy_request_clock"
+            " WHERE request_id = ?) AND status IN ('open', 'overdue')",
+            (request_id,),
+        )
+        con.execute("UPDATE privacy_request SET closed_on = ? WHERE id = ?", (day, request_id))
+        return result
+    raise ValueError(f"unknown event {event!r}")
+
+
+def create_law_appeal(con: sqlite3.Connection, request_id: int,
+                      packs: dict[str, Any] | None = None) -> dict[str, Any]:
+    laws = _laws_module()
+    packs = packs if packs is not None else laws.load_packs()
+    req = get_law_request(con, request_id)
+    if req["kind"] != "request":
+        raise ValueError("appeal an original request, not an appeal")
+    if not req["received_on"]:
+        raise ValueError("record the receipt date of the original request first")
+    pack, why = _tracking_pack(con, req, packs)
+    if pack is None:
+        raise ValueError(f"no statutory appeal: {why}")
+    person = law_person(con, req["person_id"], filing=True)
+    controller = con.execute("SELECT name FROM broker WHERE id = ?", (req["broker_id"],)).fetchone()[0]
+    try:
+        tid, text = laws.render_appeal(pack, req["region"], controller=controller,
+                                       name=person["legal_name"], received_on=req["received_on"],
+                                       sender=req["sender"])
+    except laws.LawError as exc:
+        raise ValueError(str(exc)) from exc
+    con.execute(
+        "INSERT INTO privacy_request (person_id, broker_id, attestation_id, kind, parent_request_id,"
+        " region, pack_id, pack_version, law_version, universal, selection_reason, rights, sender,"
+        " template_id, rendered_text, rendered_sha256, assumptions, created_at_utc)"
+        " VALUES (?, ?, ?, 'appeal', ?, ?, ?, ?, ?, 0, 'state_pack', ?, ?, ?, ?, ?, ?, ?)",
+        (req["person_id"], req["broker_id"], req["attestation_id"], request_id, req["region"],
+         req["pack_id"], req["pack_version"], req["law_version"], req["rights"], req["sender"],
+         tid, text, laws.sha256_text(text), req["assumptions"], utc_iso()),
+    )
+    rid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+    return {"id": rid, "text": text}
+
+
+def _print_clocks(clocks: list[dict[str, Any]]) -> None:
+    for c in clocks:
+        print(f"  {c['name']}: due {c['due']} ({c['days']} {c['day_type']} days from {c['start']}; {c['cite']})")
+
+
+def _law_db(args: argparse.Namespace) -> Path | None:
+    db = args.workspace / "takedown.db"
+    if not db.exists():
+        print(f"missing {db} - run: ryd.py init --workspace {args.workspace}", file=sys.stderr)
+        return None
+    return db
+
+
+def cmd_law_validate(args: argparse.Namespace) -> int:
+    laws = _laws_module()
+    results = laws.validate_dir(args.packs or laws.PACKS_DIR)
+    bad = {k: v for k, v in results.items() if v}
+    for name, errs in sorted(bad.items()):
+        for err in errs:
+            print(f"{name}: {err}", file=sys.stderr)
+    print(f"{len(results) - len(bad)}/{len(results)} packs valid")
+    return 1 if bad else 0
+
+
+def cmd_attest_residency(args: argparse.Namespace) -> int:
+    if not args.confirm:
+        print("pass --confirm once the person (or their parent/agent) has stated their state of residence",
+              file=sys.stderr)
+        return 2
+    db = _law_db(args)
+    if db is None:
+        return 1
+    try:
+        with connect(db, readonly=False) as con:
+            aid = record_attestation(con, args.person_id, args.region, args.on)
+            con.commit()
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    print(aid)
+    return 0
+
+
+def cmd_law_plan(args: argparse.Namespace) -> int:
+    laws = _laws_module()
+    db = _law_db(args)
+    if db is None:
+        return 1
+    try:
+        rights = laws.parse_rights(args.rights)
+        with connect(db, readonly=True) as con:
+            plan = plan_law_request(con, args.person_id, rights=rights,
+                                    on=laws.parse_date(args.on) if args.on else None,
+                                    controller_covered=args.controller_covered,
+                                    force_universal=args.universal)
+    except (ValueError, laws.LawError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    plan.pop("_selection")
+    if args.json:
+        print(json.dumps(plan, indent=2))
+        return 0
+    kind = "voluntary (universal)" if plan["universal"] else "state law"
+    print(f"region {plan['region']}: {plan['pack']} - {kind}, reason {plan['reason']}")
+    print(f"rights: {', '.join(plan['rights'])}; sender: {plan['sender']}")
+    for w in plan["warnings"]:
+        print(f"! {w}")
+    if plan["clocks_if_received"]:
+        print("clocks if the controller receives it today:")
+        _print_clocks(plan["clocks_if_received"])
+    for a in plan["assumptions"]:
+        print(f"- {a}")
+    return 0
+
+
+def cmd_law_request(args: argparse.Namespace) -> int:
+    laws = _laws_module()
+    db = _law_db(args)
+    if db is None:
+        return 1
+    try:
+        rights = laws.parse_rights(args.rights)
+        with connect(db, readonly=False) as con:
+            out = create_law_request(con, args.person_id, args.controller, rights=rights,
+                                     on=laws.parse_date(args.on) if args.on else None,
+                                     controller_covered=args.controller_covered,
+                                     force_universal=args.universal, received_on=args.received)
+            con.commit()
+    except (ValueError, laws.LawError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    plan = out["plan"]
+    print(f"# privacy_request {out['id']} - {plan['pack']} ({plan['reason']})", file=sys.stderr)
+    for w in plan["warnings"]:
+        print(f"# ! {w}", file=sys.stderr)
+    if out["clocks"]:
+        print("# clocks opened:", file=sys.stderr)
+        for c in out["clocks"]:
+            print(f"#   {c['name']} due {c['due']}", file=sys.stderr)
+    if args.out:
+        write_private_text(args.out, out["text"])
+        print(args.out)
+    else:
+        print(out["text"])
+    return 0
+
+
+def cmd_law_event(args: argparse.Namespace) -> int:
+    laws = _laws_module()
+    db = _law_db(args)
+    if db is None:
+        return 1
+    try:
+        with connect(db, readonly=False) as con:
+            if args.event == "appeal":
+                out = create_law_appeal(con, args.request_id)
+                con.commit()
+                print(f"# appeal privacy_request {out['id']}; record its receipt with --event received",
+                      file=sys.stderr)
+                print(out["text"])
+                return 0
+            res = law_request_event(con, args.request_id, args.event,
+                                    args.date or local_today().isoformat())
+            con.commit()
+    except (ValueError, laws.LawError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    if res["note"]:
+        print(f"no legal clock: {res['note']}")
+    _print_clocks(res["clocks"])
+    if not res["note"] and not res["clocks"]:
+        print("ok")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="ryd",
@@ -2481,6 +2931,48 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--backend", choices=("auto", "pillow", "stdlib"), default="auto")
     rp.add_argument("--no-emoji", action="store_true")
     rp.set_defaults(func=cmd_report)
+
+    lv = sub.add_parser("law-validate", help="check US state law packs against the schema")
+    lv.add_argument("--packs", type=Path, help="pack directory (default laws/packs)")
+    lv.set_defaults(func=cmd_law_validate)
+
+    ar = sub.add_parser("attest-residency", help="record the person's stated US state of residence")
+    ar.add_argument("--workspace", type=Path, required=True)
+    ar.add_argument("--person-id", type=int, required=True)
+    ar.add_argument("--region", required=True, help="two-letter state code or DC")
+    ar.add_argument("--on", help="date stated, YYYY-MM-DD (default today)")
+    ar.add_argument("--confirm", action="store_true", help="the person stated this residency")
+    ar.set_defaults(func=cmd_attest_residency)
+
+    lp = sub.add_parser("law-plan", help="read-only: which law pack, wording and clocks apply")
+    lp.add_argument("--workspace", type=Path, required=True)
+    lp.add_argument("--person-id", type=int, required=True)
+    lp.add_argument("--rights", help="comma list: delete,opt_out,access,correct,portability")
+    lp.add_argument("--on", help="planned send date, YYYY-MM-DD (default today)")
+    lp.add_argument("--controller-covered", action="store_true",
+                    help="person has a documented reason the controller meets a narrow law's thresholds")
+    lp.add_argument("--universal", action="store_true", help="force the voluntary wording")
+    lp.add_argument("--json", action="store_true")
+    lp.set_defaults(func=cmd_law_plan)
+
+    lr = sub.add_parser("law-request", help="render a request for one controller and record the exact text")
+    lr.add_argument("--workspace", type=Path, required=True)
+    lr.add_argument("--person-id", type=int, required=True)
+    lr.add_argument("--controller", required=True, help="business or data broker name")
+    lr.add_argument("--rights", help="comma list: delete,opt_out,access,correct,portability")
+    lr.add_argument("--on", help="planned send date, YYYY-MM-DD (default today)")
+    lr.add_argument("--controller-covered", action="store_true")
+    lr.add_argument("--universal", action="store_true")
+    lr.add_argument("--received", help="date the controller received it, if already known")
+    lr.add_argument("--out", type=Path, help="write the text here (mode 600) instead of stdout")
+    lr.set_defaults(func=cmd_law_request)
+
+    le = sub.add_parser("law-event", help="record receipt, extension notice, appeal, or closure")
+    le.add_argument("--workspace", type=Path, required=True)
+    le.add_argument("--request-id", type=int, required=True)
+    le.add_argument("--event", required=True, choices=("received", "extended", "appeal", "closed"))
+    le.add_argument("--date", help="YYYY-MM-DD (default today)")
+    le.set_defaults(func=cmd_law_event)
     return p
 
 

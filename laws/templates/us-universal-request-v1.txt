@@ -1,0 +1,14 @@
+Subject: Request to delete my personal information
+
+To $controller:
+
+I am asking you to delete the personal information you hold about me, to stop selling or sharing it, and to remove any profile or listing about me that you publish.
+
+$rights_block
+
+This is a voluntary request. I am not asserting that any particular statute applies to your organization, and I am not setting a legal deadline. Please confirm in writing when it is done, or tell me what you need to locate my record. Please use any information I send to verify this request only for that purpose.
+
+$sender_block
+
+Name: $name
+Reply to: [contact address the person chose for this request]

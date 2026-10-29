@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-de",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "DE",
+    "name": "Delaware"
+  },
+  "law": {
+    "name": "Delaware Personal Data Privacy Act",
+    "citation": "Del. Code tit. 6, 12D-101 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-01-01",
+    "effective_date_source": "DE-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "DE-act",
+      "title": "Delaware HB 154 (152nd GA) text",
+      "url": "https://legis.delaware.gov/json/BillDetail/GenerateHtmlDocument?docTypeId=2&legislationId=140388&legislationName=H&legislationTypeId=1",
+      "checked_on": "2026-10-29",
+      "sha256": "f143e66550f461e4e0f5bfbf1936a65094cd7afe24b867a857660f0cf4d3bb29",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "DE-bill",
+      "title": "Delaware HB 154 bill detail (status: signed 9/11/23)",
+      "url": "https://legis.delaware.gov/BillDetail/140388",
+      "checked_on": "2026-10-29",
+      "sha256": "f80d81d20cd90eaf0477619d5c2fb0c53e2ce3ccb18e570564f5db49c11da1f5",
+      "supports": [
+        "signing_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (12D-105) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (12D-105) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (12D-105) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (12D-105) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "DE-act",
+    "cite": "12D-104(a)"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "DE-act",
+      "cite": "12D-104"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "DE-act",
+      "cite": "12D-104",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "DE-act",
+        "cite": "12D-104"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "Effective 2025-01-01 because the bill was signed 2023-09-11, before the act's 2024-01-01 condition."
+  ]
+}

@@ -152,7 +152,7 @@ Pick the primary legal track from residency. Always still do public people-searc
 | Residency | First move | Clock |
 | --- | --- | --- |
 | California | [CA DROP](https://privacy.ca.gov/drop/) then public opt-outs | Brokers process DROP at least every 45 days; status may take 90 days. CCPA deletion otherwise 45 days (+45). |
-| Other US with a consumer privacy law (CO, CT, VA, TX, OR, …) | State deletion / opt-out-of-sale request + public opt-outs. Check that state's portal or AG privacy page. TX / OR / VT also have data-broker **registries** (not a one-shot DROP). | Usually 45 days. Confirm on the state site. |
+| Other US state or DC | `law-plan` → `law-request` (state pack if one is in effect and residency is attested; else the universal voluntary request) + public opt-outs. TX / OR / VT also have data-broker **registries** (not a one-shot DROP). | From the pack, counted from the controller's **receipt** date. No pack → no legal deadline. |
 | Vermont | Registry lookup + individual broker requests | Per broker / VT law |
 | EU / EEA | GDPR Art. 17 erasure to each controller | 1 month, extendable to 3 months with notice |
 | UK | UK GDPR erasure | 1 month, extendable |
@@ -169,6 +169,15 @@ California extras (do these first, in order):
 3. Recheck DROP status at [consumer.drop.privacy.ca.gov/dropstatus](https://consumer.drop.privacy.ca.gov/dropstatus).
 
 DROP does **not** delete first-party accounts the person created themselves, exempted data, or some publicly available records. People-search pages can still rank. File them.
+
+Other US states and DC (not legal advice; the ledger records what was assumed):
+
+1. Record residency once: `python3 scripts/ryd.py attest-residency --workspace "$WORKSPACE" --person-id N --region CO --confirm`. Ask the person; never infer it from a listing.
+2. Plan: `ryd.py law-plan --workspace "$WORKSPACE" --person-id N [--rights delete,opt_out]`. It names the pack (`laws/packs/us-xx.json`, 20 states as of 2026-10-29) or `us-universal` and why (no pack, not yet in effect, stale, superseded, no attestation, narrow law).
+3. Render and record: `ryd.py law-request --workspace "$WORKSPACE" --person-id N --controller "Broker" [--out exports/req.txt]`. The exact text, its sha256, the pack version and the assumptions are stored. Send it yourself; it does not send.
+4. When the controller confirms receipt: `ryd.py law-event --workspace "$WORKSPACE" --request-id R --event received --date YYYY-MM-DD`. Only then do statutory clocks open. Also `--event extended` (their extension notice), `--event appeal` (render an appeal where the law has one), `--event closed`.
+
+Rules the verbs enforce: wording says "To the extent your organization is subject to …" and never claims coverage; Florida's law reaches few companies, so it uses universal wording unless you pass `--controller-covered`; Iowa and Utah deletion covers only data the person provided, so the letter also asks voluntarily for the rest; authorized agents are blocked for rights the pack says they cannot use (most states: opt-out only); no appeal deadline is ever set for the consumer ("reasonable period" stays text). California residents: DROP first, then `law-request` for businesses DROP does not reach.
 
 ## 3. Workspace and legal log
 
@@ -442,7 +451,7 @@ Clock kinds:
 | --- | --- | --- |
 | `verify_email` | after filing | every 4–12h until clicked or 7d |
 | `site_window` | after verify | site-stated (else 7d) |
-| `legal_response` | GDPR/CCPA/letter | 30d or 45d from send; warn at 7d before |
+| `legal_response` | GDPR/CCPA/letter; `law-event received` for state packs | 30d or 45d from send; state packs: pack days from receipt (business days where the pack says so); warn at 7d before |
 | `drop_45d` | after DROP submit | every 45d |
 | `drop_90d` | after DROP submit | once at 90d |
 | `rescan` | always | `cadence_hours` |

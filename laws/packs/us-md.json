@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-md",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "MD",
+    "name": "Maryland"
+  },
+  "law": {
+    "name": "Maryland Online Data Privacy Act",
+    "citation": "Md. Code, Com. Law 14-4601 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-10-01",
+    "effective_date_source": "MD-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "MD-act",
+      "title": "Maryland HB 567 (2024) enrolled",
+      "url": "https://mgaleg.maryland.gov/2024RS/bills/hb/hb0567e.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "0ee0e11e7791c9a3251c3d761998cea6886c4b4be3738c31de93ace603f1c32c",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "effective_date",
+        "authorized_agent"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (14-4606) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (14-4606) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (14-4606) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (14-4606) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "MD-act",
+    "cite": "14-4605"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MD-act",
+      "cite": "14-4605"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MD-act",
+      "cite": "14-4605",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "MD-act",
+        "cite": "14-4605"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

@@ -1,0 +1,654 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/k7cfo/remove-your-data/laws/schema.json",
+  "title": "remove-your-data US law pack",
+  "description": "One US state consumer privacy law, or the universal voluntary request. scripts/ryd_laws.py validate_pack() is the enforcing validator; this file documents the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pack_id",
+    "pack_version",
+    "status",
+    "supersedes",
+    "superseded_by",
+    "jurisdiction",
+    "law",
+    "verified_on",
+    "review_by",
+    "reviewer",
+    "changelog",
+    "sources",
+    "applicability",
+    "route",
+    "rights",
+    "deletion_scope",
+    "clocks",
+    "templates",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "pack_id": {
+      "type": "string",
+      "description": "us-xx for the state file; us-xx-<suffix> for a law that replaces it (named by superseded_by)",
+      "pattern": "^us-([a-z]{2}(-[a-z0-9]+)?|universal)$"
+    },
+    "pack_version": {
+      "type": "string",
+      "pattern": "^\\d{4}\\.\\d{2}\\.\\d{2}(\\.\\d+)?$"
+    },
+    "status": {
+      "enum": [
+        "current",
+        "superseded",
+        "unverified"
+      ]
+    },
+    "supersedes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "pack_id@pack_version this replaces"
+    },
+    "superseded_by": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "pack_id of the replacement"
+    },
+    "jurisdiction": {
+      "type": "object",
+      "required": [
+        "country",
+        "region",
+        "name"
+      ],
+      "properties": {
+        "country": {
+          "const": "US"
+        },
+        "region": {
+          "type": "string",
+          "description": "two-letter code, DC, or * for universal"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "law": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "name",
+        "citation",
+        "law_version",
+        "effective_date",
+        "effective_date_source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "citation": {
+          "type": "string"
+        },
+        "law_version": {
+          "type": "string"
+        },
+        "effective_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "effective_date_source": {
+          "type": "string"
+        }
+      }
+    },
+    "verified_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "review_by": {
+      "type": "string",
+      "format": "date",
+      "description": "after this date the pack is stale and selection falls back to universal wording"
+    },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "handle",
+        "role",
+        "legal_review"
+      ],
+      "properties": {
+        "handle": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "legal_review": {
+          "type": "boolean"
+        }
+      }
+    },
+    "changelog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "version",
+          "date",
+          "change"
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "url",
+          "checked_on",
+          "sha256",
+          "supports"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "checked_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "sha256 of the bytes fetched on checked_on; HTML pages can change without a change in law"
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "required": [
+        "summary",
+        "narrow",
+        "attestations_required"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "narrow": {
+          "type": "boolean",
+          "description": "true: most controllers are not covered; universal wording unless the user asserts coverage"
+        },
+        "attestations_required": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "residency"
+            ]
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "cite": {
+          "type": "string"
+        }
+      }
+    },
+    "route": {
+      "enum": [
+        null,
+        "drop_first"
+      ]
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "access",
+        "correct",
+        "delete",
+        "portability",
+        "opt_out"
+      ],
+      "properties": {
+        "access": {
+          "type": "object",
+          "required": [
+            "available",
+            "authorized_agent"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "authorized_agent": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "true: statute lets an authorized agent submit this right; false: no such provision found; null: unverified"
+            },
+            "agent_note": {
+              "type": "string"
+            }
+          }
+        },
+        "correct": {
+          "type": "object",
+          "required": [
+            "available",
+            "authorized_agent"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "authorized_agent": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "true: statute lets an authorized agent submit this right; false: no such provision found; null: unverified"
+            },
+            "agent_note": {
+              "type": "string"
+            }
+          }
+        },
+        "delete": {
+          "type": "object",
+          "required": [
+            "available",
+            "authorized_agent"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "authorized_agent": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "true: statute lets an authorized agent submit this right; false: no such provision found; null: unverified"
+            },
+            "agent_note": {
+              "type": "string"
+            }
+          }
+        },
+        "portability": {
+          "type": "object",
+          "required": [
+            "available",
+            "authorized_agent"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "authorized_agent": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "true: statute lets an authorized agent submit this right; false: no such provision found; null: unverified"
+            },
+            "agent_note": {
+              "type": "string"
+            }
+          }
+        },
+        "opt_out": {
+          "type": "object",
+          "required": [
+            "available",
+            "authorized_agent"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "authorized_agent": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "true: statute lets an authorized agent submit this right; false: no such provision found; null: unverified"
+            },
+            "agent_note": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "deletion_scope": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "enum": [
+            "all_personal_data",
+            "provided_by_consumer",
+            "collected_from_consumer",
+            "unverified",
+            "voluntary"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cite": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "clocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "response",
+        "extension",
+        "acknowledgement",
+        "opt_out",
+        "appeal"
+      ],
+      "properties": {
+        "response": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "days",
+            "day_type",
+            "source",
+            "cite"
+          ],
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 366
+            },
+            "day_type": {
+              "enum": [
+                "calendar",
+                "business"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "description": "id of an entry in sources"
+            },
+            "cite": {
+              "type": "string"
+            },
+            "notice_within_initial_period": {
+              "type": "boolean"
+            }
+          }
+        },
+        "extension": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "days",
+            "day_type",
+            "source",
+            "cite"
+          ],
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 366
+            },
+            "day_type": {
+              "enum": [
+                "calendar",
+                "business"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "description": "id of an entry in sources"
+            },
+            "cite": {
+              "type": "string"
+            },
+            "notice_within_initial_period": {
+              "type": "boolean"
+            }
+          }
+        },
+        "acknowledgement": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "days",
+            "day_type",
+            "source",
+            "cite"
+          ],
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 366
+            },
+            "day_type": {
+              "enum": [
+                "calendar",
+                "business"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "description": "id of an entry in sources"
+            },
+            "cite": {
+              "type": "string"
+            },
+            "notice_within_initial_period": {
+              "type": "boolean"
+            }
+          }
+        },
+        "opt_out": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "days",
+            "day_type",
+            "source",
+            "cite"
+          ],
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 366
+            },
+            "day_type": {
+              "enum": [
+                "calendar",
+                "business"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "description": "id of an entry in sources"
+            },
+            "cite": {
+              "type": "string"
+            },
+            "notice_within_initial_period": {
+              "type": "boolean"
+            }
+          }
+        },
+        "appeal": {
+          "type": "object",
+          "required": [
+            "available"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "response": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "days",
+                "day_type",
+                "source",
+                "cite"
+              ],
+              "properties": {
+                "days": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 366
+                },
+                "day_type": {
+                  "enum": [
+                    "calendar",
+                    "business"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "id of an entry in sources"
+                },
+                "cite": {
+                  "type": "string"
+                },
+                "notice_within_initial_period": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "extension": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "days",
+                "day_type",
+                "source",
+                "cite"
+              ],
+              "properties": {
+                "days": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 366
+                },
+                "day_type": {
+                  "enum": [
+                    "calendar",
+                    "business"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "id of an entry in sources"
+                },
+                "cite": {
+                  "type": "string"
+                },
+                "notice_within_initial_period": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "consumer_filing_window": {
+              "type": "string",
+              "description": "never a number: statutes say a reasonable period"
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "templates": {
+      "type": "object",
+      "required": [
+        "request",
+        "appeal"
+      ],
+      "properties": {
+        "request": {
+          "type": "string"
+        },
+        "appeal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

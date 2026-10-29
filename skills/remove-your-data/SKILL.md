@@ -19,7 +19,7 @@ The playbook is the **repository root**:
 
 1. Read [`../../AGENTS.md`](../../AGENTS.md)
 2. Read [`../../SKILL.md`](../../SKILL.md) and follow it
-3. Load `../../references/`, `../../scripts/`, `../../templates/` from the repo root
+3. Load `../../references/`, `../../scripts/`, `../../templates/`, `../../laws/` from the repo root
 
 Session start: run `python3 scripts/ryd.py recap --workspace "$WORKSPACE"` first, every session and after any context loss. Present results in chat as the card from `ryd.py report --image`, not as a dashboard link.
 

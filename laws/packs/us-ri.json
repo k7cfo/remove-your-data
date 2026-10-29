@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ri",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "RI",
+    "name": "Rhode Island"
+  },
+  "law": {
+    "name": "Rhode Island Data Transparency and Privacy Protection Act",
+    "citation": "R.I. Gen. Laws 6-48.1",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2026-01-01",
+    "effective_date_source": "RI-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "RI-act",
+      "title": "Rhode Island H 7787A (2024)",
+      "url": "https://webserver.rilegislature.gov/BillText24/HouseText24/H7787A.htm",
+      "checked_on": "2026-10-29",
+      "sha256": "8687c303941ad5b74e320ff77ae58d32ae70ea1f6a00cbdc725fff6cd698e105",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent",
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "RI-act",
+    "cite": "6-48.1"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "RI-act",
+      "cite": "6-48.1-6"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "RI-act",
+      "cite": "6-48.1-6",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "RI-act",
+        "cite": "6-48.1-6"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

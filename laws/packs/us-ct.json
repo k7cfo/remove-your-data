@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ct",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "CT",
+    "name": "Connecticut"
+  },
+  "law": {
+    "name": "Connecticut Data Privacy Act",
+    "citation": "Conn. Gen. Stat. 42-515 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2023-07-01",
+    "effective_date_source": "CT-stat"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "CT-stat",
+      "title": "Connecticut General Statutes chapter 743jj (current)",
+      "url": "https://www.cga.ct.gov/current/pub/chap_743jj.htm",
+      "checked_on": "2026-10-29",
+      "sha256": "ff6266b5a7ba0087ec489b463e1cff1cca3dd7be874a488aec01585d5396e633",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "CT-pa25",
+      "title": "Connecticut Public Act 25-113",
+      "url": "https://www.cga.ct.gov/2025/ACT/PA/PDF/2025PA-00113-R00SB-01295-PA.PDF",
+      "checked_on": "2026-10-29",
+      "sha256": "bd8bf2c8453c5cd1b74cb5c1e14fcd1851ecd71a9defcdd771b87dfe091a474a",
+      "supports": [
+        "amendments"
+      ]
+    },
+    {
+      "id": "CT-pa26",
+      "title": "Connecticut Public Act 26-64",
+      "url": "https://www.cga.ct.gov/2026/ACT/PA/PDF/2026PA-00064-R00SB-00004-PA.PDF",
+      "checked_on": "2026-10-29",
+      "sha256": "dadca977dba5e7b6c29ef47d258a97c05ade1af6567d41b3656773eb5be6edc6",
+      "supports": [
+        "amendments"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (42-519) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (42-519) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (42-519) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (42-519) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "CT-stat",
+    "cite": "42-518(a)"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "CT-stat",
+      "cite": "42-518"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "CT-stat",
+      "cite": "42-518",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "CT-stat",
+        "cite": "42-518"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "PA 25-113 changed applicability thresholds from 2026-07-01; response and appeal clocks unchanged.",
+    "PA 26-64 amends 42-518(a) effective 2026-10-01 and adds a data-broker mechanism from 2028-10-01 (not modeled)."
+  ]
+}

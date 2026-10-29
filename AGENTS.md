@@ -12,7 +12,7 @@ Author: Nick Newsom (@k7cfo). License: Apache-2.0 (see `LICENSE`, `NOTICE`). For
 1. Read [`SKILL.md`](SKILL.md) in full. That is the playbook. Do not improvise a parallel process.
 2. **§0 capability.** List tools this host already has (`python3`, folder, browser, search, mailbox, scheduler). Do not install software they did not ask for. Missing a tool is not a stop: use what you have, or coach the human (`SKILL.md` §0). Python is optional.
 3. If the roster has no primary person, run **SKILL.md §1 intake 1:1** and **stop**. One question per turn. Do not dump the questionnaire. Roster goes in SQLite (`/roster` or `ryd.py`) **or** `templates/paper-log.md`. Do not search until residency is known **and** intake Q9 is done.
-4. If they live in California, **CA DROP first** — one request per roster person.
+4. If they live in California, **CA DROP first** — one request per roster person. Other US states and DC: `attest-residency`, `law-plan`, `law-request`, `law-event` (`SKILL.md` §2). Packs are data checked against primary sources on a stated date, not legal advice.
 5. Put the workspace **outside this git clone**. Never commit `takedown.db`, paper logs, evidence, DROP IDs, or listing URLs that identify a real person.
 6. After a pass: present results in chat as the generated card (`ryd.py report --image`, plus `report` markdown; `--text` if the host cannot show images). Do not point the user to the dashboard instead. `ryd.py serve` (`/`, `/roster`, `/settings`) is an optional read-only view. Otherwise the paper log is the report. Agents use `ryd.py settings` instead of scraping the page when it exists.
 
@@ -48,13 +48,15 @@ Chat is the interface. `recap` first (session start, after context loss); `repor
 | `references/brokers.md` | Opt-out queue (verify live URLs) |
 | `references/dead-urls.md` | Skip without looping; `ryd.py pack` prints these |
 | `references/jurisdictions.md` | Legal clocks |
+| `laws/` | Versioned US state law packs, `schema.json`, request/appeal templates; `laws/README.md` says how to update one |
 | `references/search.md` | Query pack + SERP new-host watch |
 | `templates/erasure-request.md` | Letter when there is no form |
 | `templates/regulator-complaint.md` | After the legal clock; do not auto-send |
 | `templates/paper-log.md` | No-Python workspace (roster, CSV log, clocks) |
 | `docs/PRIVACY.md` | What leaves the machine |
 | `scripts/schema.sql` | Legal log schema (`relist_90d`, roster `keep_host` / `keep_url`) |
-| `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` / `recap` / `report` |
+| `scripts/ryd.py` | `init` / `serve` / `export` / `add-person` / `add-ident` / `pack` / `settings` / `recap` / `report` / `law-validate` / `attest-residency` / `law-plan` / `law-request` / `law-event` |
+| `scripts/ryd_laws.py` | Law pack loader, validator, pack selection, receipt-date clocks, request rendering |
 | `scripts/ryd_report.py` | Privacy-safe card model and renderers for `recap` / `report` (md, text, json, PNG) |
 | `scripts/registry_pull.py` | CA registry CSV hostname diff — not a spray list |
 | `CONTRIBUTING.md` | How to PR |

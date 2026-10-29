@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-universal",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "*",
+    "name": "Any US state or DC (voluntary request)"
+  },
+  "law": null,
+  "verified_on": "2026-10-29",
+  "review_by": "2099-12-31",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial universal voluntary request."
+    }
+  ],
+  "sources": [],
+  "applicability": {
+    "summary": "Voluntary request. Makes no statutory claim and sets no legal deadline.",
+    "narrow": false,
+    "attestations_required": []
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": null
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": null
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": null
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": null
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": null
+    }
+  },
+  "deletion_scope": {
+    "value": "voluntary",
+    "source": null,
+    "cite": null
+  },
+  "clocks": {
+    "response": null,
+    "extension": null,
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": false,
+      "note": "Voluntary request; no statutory appeal."
+    }
+  },
+  "templates": {
+    "request": "us-universal-request-v1",
+    "appeal": null
+  },
+  "notes": [
+    "Used for states without a pack, laws not yet in effect, stale or superseded packs, and narrow laws."
+  ]
+}

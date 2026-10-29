@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ne",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "NE",
+    "name": "Nebraska"
+  },
+  "law": {
+    "name": "Nebraska Data Privacy Act",
+    "citation": "Neb. Rev. Stat. 87-1101 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-01-01",
+    "effective_date_source": "NE-lb"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "NE-1107",
+      "title": "Nebraska Revised Statutes 87-1107",
+      "url": "https://nebraskalegislature.gov/laws/statutes.php?statute=87-1107",
+      "checked_on": "2026-10-29",
+      "sha256": "37e0cd54aa346791e3fb020716931497c6e290faddbdb6b42eae244a9f0eec82",
+      "supports": [
+        "delete_scope"
+      ]
+    },
+    {
+      "id": "NE-1108",
+      "title": "Nebraska Revised Statutes 87-1108",
+      "url": "https://nebraskalegislature.gov/laws/statutes.php?statute=87-1108",
+      "checked_on": "2026-10-29",
+      "sha256": "53ef73d931907a37b3ea2d3b1f3b158a58ed4c92e7a8559fa081b801ab79189f",
+      "supports": [
+        "response",
+        "extension"
+      ]
+    },
+    {
+      "id": "NE-1109",
+      "title": "Nebraska Revised Statutes 87-1109",
+      "url": "https://nebraskalegislature.gov/laws/statutes.php?statute=87-1109",
+      "checked_on": "2026-10-29",
+      "sha256": "43d56545b9d7a9ea21d1e5ef807577025ab4adc12e1b3d41d625b5ebfda9d06d",
+      "supports": [
+        "appeal"
+      ]
+    },
+    {
+      "id": "NE-1111",
+      "title": "Nebraska Revised Statutes 87-1111",
+      "url": "https://nebraskalegislature.gov/laws/statutes.php?statute=87-1111",
+      "checked_on": "2026-10-29",
+      "sha256": "d04e91340483d42bcea81cedcde258287df284acdf79359ae4b0e76dca160f33",
+      "supports": [
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "NE-lb",
+      "title": "Nebraska LB 1074 (2024) slip law, sec. 100 operative dates",
+      "url": "https://nebraskalegislature.gov/FloorDocs/108/PDF/Slip/LB1074.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "d9c7b8489ea6503086712617e374bbf94888e95fe42e3f68ac36f9a140a23eb6",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (87-1111(5)) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (87-1111(5)) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (87-1111(5)) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (87-1111(5)) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "NE-1107",
+    "cite": "87-1107"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "NE-1108",
+      "cite": "87-1108"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "NE-1108",
+      "cite": "87-1108",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "NE-1109",
+        "cite": "87-1109"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

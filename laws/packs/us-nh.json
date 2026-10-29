@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-nh",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "NH",
+    "name": "New Hampshire"
+  },
+  "law": {
+    "name": "New Hampshire consumer privacy law",
+    "citation": "RSA 507-H",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-01-01",
+    "effective_date_source": "NH-stat"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "NH-stat",
+      "title": "New Hampshire RSA 507-H:4",
+      "url": "https://gencourt.state.nh.us/rsa/html/LII/507-H/507-H-4.htm",
+      "checked_on": "2026-10-29",
+      "sha256": "45a492cdfdda4ca65e12427fc3dcaf434e9bec7f3b8dc43dd861433e821910f6",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "NH-agent",
+      "title": "New Hampshire RSA 507-H:5",
+      "url": "https://gencourt.state.nh.us/rsa/html/LII/507-H/507-H-5.htm",
+      "checked_on": "2026-10-29",
+      "sha256": "59815c8c9d123a7e8f6930fa495d12ab37d6fbe92f5e4c69abfbcfb910fa5b69",
+      "supports": [
+        "authorized_agent"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (507-H:5) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (507-H:5) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (507-H:5) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (507-H:5) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "NH-stat",
+    "cite": "507-H:4, I(c)"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "NH-stat",
+      "cite": "507-H:4"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "NH-stat",
+      "cite": "507-H:4",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "NH-stat",
+        "cite": "507-H:4"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

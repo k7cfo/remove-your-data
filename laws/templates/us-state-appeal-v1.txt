@@ -1,0 +1,11 @@
+Subject: Appeal of your decision on my consumer privacy request
+
+To $controller:
+
+I am a resident of $state. On $received_on you received my request under the $law_name ($citation). To the extent your organization is subject to that law, I appeal your decision not to act on it, in whole or in part.
+
+$timing_block
+$sender_block
+
+Name: $name
+Reply to: [contact address the person chose for this request]

@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-mn",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "MN",
+    "name": "Minnesota"
+  },
+  "law": {
+    "name": "Minnesota Consumer Data Privacy Act",
+    "citation": "Minn. Stat. 325M.10 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-07-31",
+    "effective_date_source": "MN-law"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "MN-stat",
+      "title": "Minnesota Statutes 325M.14",
+      "url": "https://www.revisor.mn.gov/statutes/cite/325M.14",
+      "checked_on": "2026-10-29",
+      "sha256": "9147d7d8ab84e89e09c8f7a2c74616f9d505a932a99b5f977fabe366f974e279",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "MN-law",
+      "title": "Minnesota Laws 2024 ch. 121",
+      "url": "https://www.revisor.mn.gov/laws/2024/0/Session+Law/Chapter/121/",
+      "checked_on": "2026-10-29",
+      "sha256": "7f441511c68e18838b77847acfc86f87e686c88a05d86f22130c44b278fc6bc9",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "MN-stat",
+    "cite": "325M.14"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MN-stat",
+      "cite": "325M.14"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MN-stat",
+      "cite": "325M.14",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 45,
+        "day_type": "calendar",
+        "source": "MN-stat",
+        "cite": "325M.14"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)",
+      "extension": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "MN-stat",
+        "cite": "325M.14"
+      }
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

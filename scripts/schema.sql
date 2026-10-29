@@ -156,10 +156,58 @@ CREATE TABLE IF NOT EXISTS leftover (
   updated_at_utc TEXT NOT NULL
 );
 
+-- US state law packs (laws/packs). A request row keeps the exact text sent and
+-- the pack version used, so a later pack update never rewrites history.
+CREATE TABLE IF NOT EXISTS residency_attestation (
+  id INTEGER PRIMARY KEY,
+  person_id INTEGER NOT NULL REFERENCES person(id),
+  country TEXT NOT NULL DEFAULT 'US',
+  region TEXT NOT NULL,
+  attested_by TEXT NOT NULL
+    CHECK (attested_by IN ('self', 'parent_of_minor', 'authorized_agent')),
+  statement TEXT NOT NULL,
+  attested_on TEXT NOT NULL,
+  created_at_utc TEXT NOT NULL,
+  revoked_at_utc TEXT
+);
+
+CREATE TABLE IF NOT EXISTS privacy_request (
+  id INTEGER PRIMARY KEY,
+  person_id INTEGER NOT NULL REFERENCES person(id),
+  broker_id INTEGER NOT NULL REFERENCES broker(id),
+  attestation_id INTEGER REFERENCES residency_attestation(id),
+  kind TEXT NOT NULL DEFAULT 'request' CHECK (kind IN ('request', 'appeal')),
+  parent_request_id INTEGER REFERENCES privacy_request(id),
+  region TEXT NOT NULL,
+  pack_id TEXT NOT NULL,
+  pack_version TEXT NOT NULL,
+  law_version TEXT,
+  universal INTEGER NOT NULL,
+  selection_reason TEXT NOT NULL,
+  rights TEXT NOT NULL,
+  sender TEXT NOT NULL,
+  template_id TEXT NOT NULL,
+  rendered_text TEXT NOT NULL,
+  rendered_sha256 TEXT NOT NULL,
+  assumptions TEXT NOT NULL,
+  created_at_utc TEXT NOT NULL,
+  received_on TEXT,
+  extended_on TEXT,
+  closed_on TEXT
+);
+
+CREATE TABLE IF NOT EXISTS privacy_request_clock (
+  request_id INTEGER NOT NULL REFERENCES privacy_request(id),
+  clock_id INTEGER NOT NULL REFERENCES clock(id),
+  role TEXT NOT NULL,
+  PRIMARY KEY (request_id, clock_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_listing_status ON listing(person_id, status);
 CREATE INDEX IF NOT EXISTS idx_clock_due ON clock(status, due_at_utc);
 CREATE INDEX IF NOT EXISTS idx_action_when ON action_log(occurred_at_utc);
 CREATE INDEX IF NOT EXISTS idx_ident_person ON identifier(person_id, kind);
+CREATE INDEX IF NOT EXISTS idx_privacy_request_person ON privacy_request(person_id, broker_id);
 
 CREATE VIEW IF NOT EXISTS v_evidence_chronology AS
 SELECT

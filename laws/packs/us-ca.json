@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ca",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "CA",
+    "name": "California"
+  },
+  "law": {
+    "name": "California Consumer Privacy Act (as amended by the CPRA)",
+    "citation": "Cal. Civ. Code 1798.100 et seq.; 11 CCR 7000 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2020-01-01",
+    "effective_date_source": "CA-stat"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "CA-stat",
+      "title": "CPPA: CCPA statute text (Civ. Code 1798.100 et seq.), 2026-01-01 edition",
+      "url": "https://cppa.ca.gov/pdf/20260101_ccpa_statute.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "d1bb2a12e84d754c87a94d11984d2dbc5613bc47766d0a23bdc4e3a70b876ae1",
+      "supports": [
+        "response",
+        "extension",
+        "delete_scope",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "CA-regs",
+      "title": "CPPA: CCPA regulations effective 2026-01-01 (11 CCR 7000 et seq.)",
+      "url": "https://cppa.ca.gov/regulations/pdf/ccpa_statute_eff_20260101.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "8d57eba97a7fe13346b7827d0131e1ab84dc110c6ff20daa6fa6ec4a4329d0fe",
+      "supports": [
+        "acknowledgement",
+        "opt_out",
+        "authorized_agent"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": "drop_first",
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "11 CCR 7063 (delete, correct, know) and 7026 (opt-out)."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "11 CCR 7063 (delete, correct, know) and 7026 (opt-out)."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "11 CCR 7063 (delete, correct, know) and 7026 (opt-out)."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "11 CCR 7063 (delete, correct, know) and 7026 (opt-out)."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "11 CCR 7063 (delete, correct, know) and 7026 (opt-out)."
+    }
+  },
+  "deletion_scope": {
+    "value": "collected_from_consumer",
+    "source": "CA-stat",
+    "cite": "1798.105(a)",
+    "note": "Deletion covers personal information the business collected from the consumer. Use DROP for registered data brokers."
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "CA-stat",
+      "cite": "1798.130(a)(2)(A)"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "CA-stat",
+      "cite": "1798.130(a)(2)(A); 11 CCR 7021(b) (90 days total)",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": {
+      "days": 10,
+      "day_type": "business",
+      "source": "CA-regs",
+      "cite": "11 CCR 7021(a)"
+    },
+    "opt_out": {
+      "days": 15,
+      "day_type": "business",
+      "source": "CA-regs",
+      "cite": "11 CCR 7026(f); 7026(g) for requests to limit"
+    },
+    "appeal": {
+      "available": false,
+      "note": "No general appeal right. The 2026 regulations add an appeal only for automated decisionmaking (ADMT) requests; not modeled."
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "California residents: file CA DROP first (SKILL.md section 8). Use this pack for businesses DROP does not cover."
+  ]
+}
