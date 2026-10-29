@@ -11,4 +11,4 @@ This is a voluntary request. I am not asserting that any particular statute appl
 $sender_block
 
 Name: $name
-Reply to: [contact address the person chose for this request]
+Reply to: $reply_to

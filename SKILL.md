@@ -53,7 +53,7 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 - Do not start searching or filing until the **roster** has a primary person with residency.
 - If they live in California, run CA DROP before grinding public forms — **one DROP per person**, never a spouse on the same request.
 - Do not file for a roster person whose `consent_basis` is `unconfirmed`.
-- Do not impersonate. Consent is `self` (primary), `parent_of_minor`, or `authorized_agent` (they asked you to).
+- Do not impersonate. Consent is `self` (primary), `parent_of_minor`, or `authorized_agent` (they asked you to). Filing a family member's request in their own name from their own inbox (**household inbox**, §1) is allowed only with their recorded consent (or as the parent/guardian of a minor) and their permission to use that inbox.
 - Do not opt out other-state / other-country people who share the same name.
 - Do not collect anyone's email or site password. If a verify link lands in a mailbox you must not open, they click it.
 - Do not reuse one email across two roster people (Open Data USA: one address per person; Gmail plus-aliases collapse).
@@ -115,7 +115,7 @@ Primary person, required, this order:
 2. **Where they live** (country; US/Canada/Australia: state/province). California → DROP first, after intake — do not start DROP mid-questionnaire.
 3. Current city / postal. Street if they want address matching.
 4. Phones that show on listings (or “none”)
-5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address.
+5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address. For family members, prefer their own inbox that the helper already has permission to use (household inbox, below).
 6. Cadence (default 7 days if they skip)
 7. Anonymity: `dedicated` / `personal` / `max`
 8. Tools this host already has (skip if you already listed them in §0)
@@ -131,10 +131,36 @@ Family: add as **another `person` row**, not extra identifiers on the primary. S
 | --- | --- | --- |
 | `self` | Primary subject | yes |
 | `parent_of_minor` | User is the parent; child is a minor | yes |
-| `authorized_agent` | That adult asked the user to file | yes |
+| `authorized_agent` | That adult asked the user to file for them (household inbox or agent; record which with `record-filer`) | yes |
 | `unconfirmed` | Listed but not authorized | **no** |
 
 Family members also get their own 1:1 intake (name, consent, own verify email) — still one question per turn.
+
+### Household inbox filing (recommended for family)
+
+Most households file for a spouse/partner, an adult family member, or their kids. The recommended default is **household inbox**: the helper files the family member's own request, in that person's name, from that person's own email inbox. Broker opt-outs and privacy requests send verify links and OTP codes to the address on the request, so they land in an inbox the helper can already open and the flow completes without forwarding. It is the person's own request, so it is not authorized-agent filing and state authorized-agent limits do not apply to it.
+
+Before using it, record who files and on what basis (not legal advice; the ledger keeps what was stated):
+
+```bash
+# adult (spouse/partner or adult family member): their consent is required, with date and how
+python3 scripts/ryd.py record-filer --workspace "$WORKSPACE" --person-id 2 --mode household-inbox \
+  --filer spouse --relationship spouse-partner --consent subject-consent \
+  --consent-on 2026-10-29 --consent-note "asked me to handle it" \
+  --inbox their-own@example.com --inbox-permission
+# minor: parent or guardian
+python3 scripts/ryd.py record-filer --workspace "$WORKSPACE" --person-id 3 --mode household-inbox \
+  --filer parent --relationship parent-of-minor --consent parent-or-guardian-of-minor \
+  --inbox kid-own@example.com --inbox-permission
+```
+
+Rules:
+
+- The helper must have the person's permission to use that inbox (for a minor, the guardian's). Never use an inbox, or file in an adult's name, without that adult's consent. Ask once and record it; if unsure, the person files or you use the agent path.
+- Use the person's own address for every filing about them (brokers and state-law requests): that address is the listing's `email_used`. Do not reuse it for another person.
+- Letters are written in the person's first person, with no agent or helper language.
+- No inbox access, or they prefer it: `--mode authorized-agent` (adults) or `--mode guardian` (minors). The agent path keeps each state's authorized-agent limits and `unverified` warnings, and the letter says an agent is sending it.
+- Filing for another adult is refused until a `record-filer` consent record exists.
 
 On every later run:
 
@@ -172,6 +198,7 @@ DROP does **not** delete first-party accounts the person created themselves, exe
 
 Other US states and DC (not legal advice; the ledger records what was assumed):
 
+0. Family member: record who files with `record-filer` (household inbox recommended; §1). Agent restrictions apply only on the agent path.
 1. Record residency once: `python3 scripts/ryd.py attest-residency --workspace "$WORKSPACE" --person-id N --region CO --confirm`. Ask the person; never infer it from a listing.
 2. Plan: `ryd.py law-plan --workspace "$WORKSPACE" --person-id N [--rights delete,opt_out]`. It names the pack (`laws/packs/us-xx.json`, 20 states as of 2026-10-29) or `us-universal` and why (no pack, not yet in effect, stale, superseded, no attestation, narrow law).
 3. Render and record: `ryd.py law-request --workspace "$WORKSPACE" --person-id N --controller "Broker" [--out exports/req.txt]`. The exact text, its sha256, the pack version and the assumptions are stored. Send it yourself; it does not send.
@@ -243,6 +270,8 @@ Prefer this order:
 3. **Consumer fallback inbox** (Gmail, Yahoo, or Outlook) that is **not** their daily-driver. Required because Spokeo and Open Data USA reject many custom / agent domains, and Open Data USA normalizes Gmail `+` aliases. Keep one real Gmail/Yahoo/Outlook for those sites only.
 
 Store which mailbox was used per listing (`email_used`). Never reuse a one-per-person address across two people.
+
+Family members: file from **their own inbox** when the helper has permission to use it (household inbox, §1). Verify links and OTP codes then arrive where the helper can read them, and the request is in the person's own name. Otherwise use a dedicated inbox for that person, or coach them to click.
 
 When a verify email arrives: fetch it, extract the link or code, complete the flow, log `email_event`, recheck the public URL the same day.
 

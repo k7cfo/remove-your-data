@@ -2436,7 +2436,7 @@ def record_attestation(con: sqlite3.Connection, person_id: int, region: str,
         raise ValueError("attestation needs an active person with confirmed consent")
     on = laws.parse_date(attested_on or local_today().isoformat()).isoformat()
     who = {"self": "The person", "parent_of_minor": "The parent or guardian",
-           "authorized_agent": "The authorized agent, on the person's word,"}[basis]
+           "authorized_agent": "The household helper or authorized agent, on the person's word,"}[basis]
     statement = f"{who} stated the person is a resident of {laws.US_REGIONS[region]}."
     now = utc_iso()
     con.execute(
@@ -2459,6 +2459,100 @@ def current_attestation(con: sqlite3.Connection, person_id: int) -> dict[str, An
         (person_id,),
     ).fetchone()
     return dict(row) if row else None
+
+
+HOUSEHOLD_TIP = (
+    "Recommended for households: file in their own name from their own inbox "
+    "(record-filer --mode household_inbox) so verify/OTP links land in that inbox. "
+    "Only with their permission to use it."
+)
+
+
+def record_filer(
+    con: sqlite3.Connection,
+    person_id: int,
+    *,
+    mode: str,
+    filer: str,
+    relationship: str,
+    consent_basis: str,
+    consent_on: str | None = None,
+    consent_note: str | None = None,
+    inbox: str | None = None,
+    inbox_permission: bool = False,
+) -> int:
+    """Record who files for a person and how; replaces the previous record."""
+    laws = _laws_module()
+    person = law_person(con, person_id, filing=False)
+    if not person.get("active", 1):
+        raise ValueError("person is inactive")
+    filer = (filer or "").strip()
+    if not filer:
+        raise ValueError("say who is filing (a name or a role such as 'spouse')")
+    inbox = (inbox or "").strip() or None
+    errs = laws.check_filing(
+        mode=mode, relationship=relationship, consent_basis=consent_basis,
+        roster_consent=person.get("consent_basis") or "self", inbox=inbox,
+        inbox_permission=inbox_permission, consent_on=consent_on, consent_note=consent_note,
+    )
+    if errs:
+        raise ValueError("; ".join(errs))
+    now = utc_iso()
+    con.execute(
+        "UPDATE filing_authority SET revoked_at_utc = ? WHERE person_id = ? AND revoked_at_utc IS NULL",
+        (now, person_id),
+    )
+    con.execute(
+        "INSERT INTO filing_authority (person_id, mode, filer, relationship, consent_basis, consent_on,"
+        " consent_note, inbox, inbox_permission, created_at_utc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (person_id, mode, filer, relationship, consent_basis, consent_on,
+         (consent_note or "").strip() or None, inbox, int(bool(inbox_permission)), now),
+    )
+    return int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+
+def current_filer(con: sqlite3.Connection, person_id: int) -> dict[str, Any] | None:
+    row = con.execute(
+        "SELECT * FROM filing_authority WHERE person_id = ? AND revoked_at_utc IS NULL "
+        "ORDER BY id DESC LIMIT 1",
+        (person_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def resolve_filing(con: sqlite3.Connection, person: dict[str, Any]) -> dict[str, Any]:
+    """How a request for this person is filed: mode, letter sender, inbox, and any blocker."""
+    laws = _laws_module()
+    roster = person.get("consent_basis") or "self"
+    auth = current_filer(con, person["id"])
+    out: dict[str, Any] = {"mode": None, "sender": None, "authority_id": None, "inbox": None,
+                           "filer": None, "relationship": None, "error": None, "tips": []}
+    if auth:
+        errs = laws.check_filing(
+            mode=auth["mode"], relationship=auth["relationship"], consent_basis=auth["consent_basis"],
+            roster_consent=roster, inbox=auth["inbox"], inbox_permission=bool(auth["inbox_permission"]),
+            consent_on=auth["consent_on"], consent_note=auth["consent_note"],
+        )
+        out.update(mode=auth["mode"], authority_id=auth["id"], inbox=auth["inbox"],
+                   filer=auth["filer"], relationship=auth["relationship"])
+        if errs:
+            out["error"] = f"filing record #{auth['id']} no longer fits the roster: {'; '.join(errs)}"
+    elif roster == "self":
+        out.update(mode="self", relationship="self")
+    elif roster == "parent_of_minor":
+        out.update(mode="guardian", relationship="parent_of_minor")
+    elif roster == "authorized_agent":
+        out["error"] = ("filing for another adult needs a consent record: run record-filer with "
+                        "--consent-on and --consent-note (household_inbox recommended)")
+    else:
+        out["error"] = "consent is unconfirmed; do not file for this person"
+    if out["mode"]:
+        out["sender"] = laws.MODE_TO_SENDER[out["mode"]]
+    if out["mode"] in ("guardian", "authorized_agent") and out["relationship"] != "other_adult":
+        out["tips"].append(HOUSEHOLD_TIP)
+    elif out["mode"] is None and roster == "authorized_agent":
+        out["tips"].append(HOUSEHOLD_TIP)
+    return out
 
 
 def broker_id_for(con: sqlite3.Connection, name: str) -> int:
@@ -2496,8 +2590,12 @@ def plan_law_request(
     attested = bool(att and att["region"] == region)
     sel = laws.select_pack(packs, region, on=on, today=today, attested=attested,
                            controller_covered=controller_covered, force_universal=force_universal)
-    sender = laws.CONSENT_TO_SENDER.get(person.get("consent_basis") or "self", "self")
+    filing = resolve_filing(con, person)
+    sender = filing["sender"] or laws.CONSENT_TO_SENDER.get(person.get("consent_basis") or "self", "self")
     warnings = list(sel.warnings)
+    if filing["error"]:
+        warnings.append(filing["error"])
+    warnings.extend(filing["tips"])
     if att and att["region"] != region:
         warnings.append(f"Attested region {att['region']} differs from {region}.")
     if (person.get("residency_region") or "").upper() not in ("", region):
@@ -2515,7 +2613,10 @@ def plan_law_request(
     return {
         "person_id": person_id, "region": region, "pack": sel.pack_ref,
         "universal": sel.universal, "reason": sel.reason, "rights": rights,
-        "sender": sender, "attestation_id": att["id"] if attested else None,
+        "sender": sender, "filing_mode": filing["mode"], "filing_authority_id": filing["authority_id"],
+        "filer": filing["filer"], "filer_relationship": filing["relationship"], "inbox": filing["inbox"],
+        "filing_error": filing["error"],
+        "attestation_id": att["id"] if attested else None,
         "warnings": warnings, "blocked": blocked,
         "assumptions": laws.assumptions(sel, sender=sender, controller_covered=controller_covered),
         "clocks_if_received": preview, "_selection": sel,
@@ -2562,21 +2663,24 @@ def create_law_request(
                             controller_covered=controller_covered,
                             force_universal=force_universal, packs=packs)
     sel = plan["_selection"]
+    if plan["filing_error"]:
+        raise ValueError(plan["filing_error"])
     try:
         tid, text = laws.render_request(sel, controller=controller.strip(), name=person["legal_name"],
-                                        rights=rights, sender=plan["sender"])
+                                        rights=rights, sender=plan["sender"], reply_to=plan["inbox"])
     except laws.LawError as exc:
         raise ValueError(str(exc)) from exc
     bid = broker_id_for(con, controller)
     pack = sel.pack
     con.execute(
         "INSERT INTO privacy_request (person_id, broker_id, attestation_id, kind, region, pack_id,"
-        " pack_version, law_version, universal, selection_reason, rights, sender, template_id,"
-        " rendered_text, rendered_sha256, assumptions, created_at_utc)"
-        " VALUES (?, ?, ?, 'request', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        " pack_version, law_version, universal, selection_reason, rights, sender, filing_mode,"
+        " filing_authority_id, inbox, template_id, rendered_text, rendered_sha256, assumptions,"
+        " created_at_utc) VALUES (?, ?, ?, 'request', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (person_id, bid, plan["attestation_id"], plan["region"], pack["pack_id"],
          pack["pack_version"], (pack.get("law") or {}).get("law_version"), int(sel.universal),
-         sel.reason, json.dumps(rights), plan["sender"], tid, text, laws.sha256_text(text),
+         sel.reason, json.dumps(rights), plan["sender"], plan["filing_mode"],
+         plan["filing_authority_id"], plan["inbox"], tid, text, laws.sha256_text(text),
          json.dumps(plan["assumptions"]), utc_iso()),
     )
     rid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
@@ -2693,17 +2797,18 @@ def create_law_appeal(con: sqlite3.Connection, request_id: int,
     try:
         tid, text = laws.render_appeal(pack, req["region"], controller=controller,
                                        name=person["legal_name"], received_on=req["received_on"],
-                                       sender=req["sender"])
+                                       sender=req["sender"], reply_to=req["inbox"])
     except laws.LawError as exc:
         raise ValueError(str(exc)) from exc
     con.execute(
         "INSERT INTO privacy_request (person_id, broker_id, attestation_id, kind, parent_request_id,"
         " region, pack_id, pack_version, law_version, universal, selection_reason, rights, sender,"
-        " template_id, rendered_text, rendered_sha256, assumptions, created_at_utc)"
-        " VALUES (?, ?, ?, 'appeal', ?, ?, ?, ?, ?, 0, 'state_pack', ?, ?, ?, ?, ?, ?, ?)",
+        " filing_mode, filing_authority_id, inbox, template_id, rendered_text, rendered_sha256,"
+        " assumptions, created_at_utc)"
+        " VALUES (?, ?, ?, 'appeal', ?, ?, ?, ?, ?, 0, 'state_pack', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (req["person_id"], req["broker_id"], req["attestation_id"], request_id, req["region"],
          req["pack_id"], req["pack_version"], req["law_version"], req["rights"], req["sender"],
-         tid, text, laws.sha256_text(text), req["assumptions"], utc_iso()),
+         req["filing_mode"], req["filing_authority_id"], req["inbox"], tid, text, laws.sha256_text(text), req["assumptions"], utc_iso()),
     )
     rid = int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
     return {"id": rid, "text": text}
@@ -2712,6 +2817,41 @@ def create_law_appeal(con: sqlite3.Connection, request_id: int,
 def _print_clocks(clocks: list[dict[str, Any]]) -> None:
     for c in clocks:
         print(f"  {c['name']}: due {c['due']} ({c['days']} {c['day_type']} days from {c['start']}; {c['cite']})")
+
+
+def _filing_line(plan: dict[str, Any]) -> str:
+    mode = plan.get("filing_mode")
+    if mode == "household_inbox":
+        return (f"household inbox - {plan['filer']} ({plan['filer_relationship']}) files in the person's "
+                "own name from their own inbox; verify/OTP links go there; not an authorized agent")
+    if mode == "guardian":
+        return "guardian - letter says a parent or guardian of a minor is sending it"
+    if mode == "authorized_agent":
+        return f"authorized agent - {plan['filer']}; per-state agent rules apply"
+    if mode == "self":
+        return "self"
+    return "not recorded"
+
+
+def cmd_record_filer(args: argparse.Namespace) -> int:
+    db = _law_db(args)
+    if db is None:
+        return 1
+    try:
+        with connect(db, readonly=False) as con:
+            fid = record_filer(
+                con, args.person_id, mode=args.mode.replace("-", "_"), filer=args.filer,
+                relationship=args.relationship.replace("-", "_"),
+                consent_basis=args.consent.replace("-", "_"), consent_on=args.consent_on,
+                consent_note=args.consent_note, inbox=args.inbox,
+                inbox_permission=args.inbox_permission,
+            )
+            con.commit()
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    print(fid)
+    return 0
 
 
 def _law_db(args: argparse.Namespace) -> Path | None:
@@ -2773,7 +2913,8 @@ def cmd_law_plan(args: argparse.Namespace) -> int:
         return 0
     kind = "voluntary (universal)" if plan["universal"] else "state law"
     print(f"region {plan['region']}: {plan['pack']} - {kind}, reason {plan['reason']}")
-    print(f"rights: {', '.join(plan['rights'])}; sender: {plan['sender']}")
+    print(f"rights: {', '.join(plan['rights'])}")
+    print(f"filing: {_filing_line(plan)}")
     for w in plan["warnings"]:
         print(f"! {w}")
     if plan["clocks_if_received"]:
@@ -2802,6 +2943,7 @@ def cmd_law_request(args: argparse.Namespace) -> int:
         return 1
     plan = out["plan"]
     print(f"# privacy_request {out['id']} - {plan['pack']} ({plan['reason']})", file=sys.stderr)
+    print(f"# filing: {_filing_line(plan)}", file=sys.stderr)
     for w in plan["warnings"]:
         print(f"# ! {w}", file=sys.stderr)
     if out["clocks"]:
@@ -2943,6 +3085,30 @@ def build_parser() -> argparse.ArgumentParser:
     ar.add_argument("--on", help="date stated, YYYY-MM-DD (default today)")
     ar.add_argument("--confirm", action="store_true", help="the person stated this residency")
     ar.set_defaults(func=cmd_attest_residency)
+
+    rf = sub.add_parser(
+        "record-filer",
+        help="record who files for a person and how (household_inbox recommended for family)",
+    )
+    rf.add_argument("--workspace", type=Path, required=True)
+    rf.add_argument("--person-id", type=int, required=True)
+    rf.add_argument("--mode", required=True,
+                    choices=("self", "household_inbox", "household-inbox", "guardian",
+                             "authorized_agent", "authorized-agent"))
+    rf.add_argument("--filer", required=True, help="who is filing: a name or a role such as 'spouse'")
+    rf.add_argument("--relationship", required=True,
+                    choices=("self", "spouse_partner", "parent_of_minor", "adult_family_member",
+                             "other_adult", "spouse-partner", "parent-of-minor",
+                             "adult-family-member", "other-adult"))
+    rf.add_argument("--consent", required=True,
+                    choices=("self", "subject_consent", "parent_or_guardian_of_minor",
+                             "subject-consent", "parent-or-guardian-of-minor"))
+    rf.add_argument("--consent-on", help="date the adult consented, YYYY-MM-DD (required for adults)")
+    rf.add_argument("--consent-note", help="how the adult consented (required for adults)")
+    rf.add_argument("--inbox", help="the person's own email address used to file (household_inbox)")
+    rf.add_argument("--inbox-permission", action="store_true",
+                    help="the person (or, for a minor, their guardian) lets the filer use that inbox")
+    rf.set_defaults(func=cmd_record_filer)
 
     lp = sub.add_parser("law-plan", help="read-only: which law pack, wording and clocks apply")
     lp.add_argument("--workspace", type=Path, required=True)

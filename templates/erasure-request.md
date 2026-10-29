@@ -1,6 +1,6 @@
 # Erasure / deletion request
 
-Send from the mailbox you want them to reply to. Attach nothing extra. Give them only enough to find the record they already publish.
+Send from the mailbox you want them to reply to. Family member: send from their own inbox, in their own name, only with their recorded consent (or as guardian of a minor) and permission to use that inbox (`SKILL.md` §1). Attach nothing extra. Give them only enough to find the record they already publish.
 
 Subject: Request to delete personal information — [listing URL or broker name]
 

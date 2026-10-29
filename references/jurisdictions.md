@@ -51,6 +51,7 @@ Safeguards:
 - Florida applies to very few companies; universal wording unless the user asserts coverage (`--controller-covered`).
 - Iowa and Utah deletion covers data the consumer provided; the letter asks voluntarily for the rest.
 - The consumer's appeal filing window is "reasonable", never a number.
+- The Authorized agent column applies only when an agent files. A household helper filing the person's own request in their name from their own inbox (household inbox, with recorded consent or as guardian of a minor) is not agent filing; see `SKILL.md` §1.
 - A clock is legal only with residency attestation, receipt date, pack version and recorded assumptions. Otherwise there is no statutory deadline in the ledger.
 
 States with data-broker **registration** (not a California-style one-shot DROP): Texas, Oregon, Vermont. Use the registry to find brokers, then file per broker.

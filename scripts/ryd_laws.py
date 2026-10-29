@@ -41,8 +41,23 @@ US_REGIONS = {
 }
 RIGHTS = ("access", "correct", "delete", "portability", "opt_out")
 DEFAULT_RIGHTS = ("delete", "opt_out")
-SENDERS = ("self", "parent", "agent")
+SENDERS = ("self", "household", "parent", "agent")
 CONSENT_TO_SENDER = {"self": "self", "parent_of_minor": "parent", "authorized_agent": "agent"}
+
+# Who files, and how. ``household_inbox`` is a family helper filing the subject's own request,
+# in the subject's name, from the subject's own inbox, with the subject's consent (or as the
+# parent/guardian of a minor). It is not authorized-agent filing.
+FILING_MODES = ("self", "household_inbox", "guardian", "authorized_agent")
+MODE_TO_SENDER = {"self": "self", "household_inbox": "household", "guardian": "parent",
+                  "authorized_agent": "agent"}
+FILER_RELATIONSHIPS = ("self", "spouse_partner", "parent_of_minor", "adult_family_member", "other_adult")
+ADULT_RELATIONSHIPS = ("spouse_partner", "adult_family_member", "other_adult")
+FILING_CONSENT = ("self", "subject_consent", "parent_or_guardian_of_minor")
+ROSTER_CONSENT_FOR = {  # person.consent_basis -> filer relationships it allows
+    "self": ("self",),
+    "parent_of_minor": ("parent_of_minor",),
+    "authorized_agent": ADULT_RELATIONSHIPS,
+}
 SCOPES = ("all_personal_data", "provided_by_consumer", "collected_from_consumer", "unverified", "voluntary")
 STATUSES = ("current", "superseded", "unverified")
 DAY_TYPES = ("calendar", "business")
@@ -485,6 +500,51 @@ def agent_check(pack: dict[str, Any], rights: list[str], sender: str) -> tuple[l
     return blocked, unknown
 
 
+def check_filing(*, mode: str, relationship: str, consent_basis: str, roster_consent: str,
+                 inbox: str | None = None, inbox_permission: bool = False,
+                 consent_on: str | None = None, consent_note: str | None = None) -> list[str]:
+    """Errors for a proposed filing record; empty when it may be used."""
+    errs: list[str] = []
+    if mode not in FILING_MODES:
+        errs.append(f"mode must be one of {', '.join(FILING_MODES)}")
+    if relationship not in FILER_RELATIONSHIPS:
+        errs.append(f"relationship must be one of {', '.join(FILER_RELATIONSHIPS)}")
+    if consent_basis not in FILING_CONSENT:
+        errs.append(f"consent basis must be one of {', '.join(FILING_CONSENT)}")
+    if errs:
+        return errs
+    if roster_consent == "unconfirmed":
+        return ["roster consent is unconfirmed; do not file for this person"]
+    if relationship not in ROSTER_CONSENT_FOR.get(roster_consent, ()):
+        errs.append(f"relationship {relationship} does not match roster consent {roster_consent}")
+    if (mode == "self") != (relationship == "self"):
+        errs.append("mode self is only for the person filing their own request")
+    if relationship == "self" and consent_basis != "self":
+        errs.append("a person filing for themselves uses consent basis self")
+    if relationship == "parent_of_minor":
+        if consent_basis != "parent_or_guardian_of_minor":
+            errs.append("a parent of a minor uses consent basis parent_or_guardian_of_minor")
+        if mode not in ("household_inbox", "guardian"):
+            errs.append("a parent of a minor files as household_inbox or guardian")
+    if relationship in ADULT_RELATIONSHIPS:
+        if consent_basis != "subject_consent":
+            errs.append("filing for another adult needs consent basis subject_consent")
+        if not (consent_on and DATE_RE.match(consent_on)):
+            errs.append("record the date the adult gave consent (YYYY-MM-DD)")
+        if not (consent_note or "").strip():
+            errs.append("record how the adult gave consent (for example 'asked me in person')")
+        if mode == "guardian":
+            errs.append("guardian mode is only for a minor")
+        if mode == "household_inbox" and relationship == "other_adult":
+            errs.append("household_inbox is for a spouse/partner or family member; use authorized_agent")
+    if mode == "household_inbox":
+        if not (inbox or "").strip() or "@" not in (inbox or ""):
+            errs.append("household_inbox needs the subject's own email address")
+        if not inbox_permission:
+            errs.append("confirm the helper has the subject's permission to use that inbox")
+    return errs
+
+
 def parse_rights(raw: str | None) -> list[str]:
     if not raw:
         return list(DEFAULT_RIGHTS)
@@ -506,6 +566,8 @@ def _template(tid: str, templates_dir: Path) -> Template:
 
 
 def _sender_block(sender: str, universal: bool) -> str:
+    if sender == "household":
+        return ""  # the subject's own request, in their own words; no agent or helper language
     if sender == "parent":
         return ("I am the parent or legal guardian of the minor named below and am sending "
                 "this on their behalf.")
@@ -560,8 +622,12 @@ def _tidy(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
 
 
+REPLY_PLACEHOLDER = "[contact address the person chose for this request]"
+
+
 def render_request(sel: Selection, *, controller: str, name: str, rights: list[str],
-                   sender: str, templates_dir: Path = TEMPLATES_DIR) -> tuple[str, str]:
+                   sender: str, reply_to: str | None = None,
+                   templates_dir: Path = TEMPLATES_DIR) -> tuple[str, str]:
     """Return (template_id, text)."""
     if sender not in SENDERS:
         raise LawError(f"sender must be one of {SENDERS}")
@@ -572,6 +638,7 @@ def render_request(sel: Selection, *, controller: str, name: str, rights: list[s
         text = _template(tid, templates_dir).substitute(
             controller=controller, rights_block="Specifically:\n" + rights_block,
             sender_block=_sender_block(sender, True), name=name,
+            reply_to=reply_to or REPLY_PLACEHOLDER,
         )
         return tid, _tidy(text)
     blocked, _unknown = agent_check(pack, rights, sender)
@@ -587,12 +654,14 @@ def render_request(sel: Selection, *, controller: str, name: str, rights: list[s
         rights_block=rights_block, scope_block=_scope_block(pack, rights),
         timing_block=_timing_block(pack, rights), appeal_block=_appeal_block(pack),
         sender_block=_sender_block(sender, False), name=name,
+        reply_to=reply_to or REPLY_PLACEHOLDER,
     )
     return tid, _tidy(text)
 
 
 def render_appeal(pack: dict[str, Any], region: str, *, controller: str, name: str,
-                  received_on: str, sender: str, templates_dir: Path = TEMPLATES_DIR) -> tuple[str, str]:
+                  received_on: str, sender: str, reply_to: str | None = None,
+                  templates_dir: Path = TEMPLATES_DIR) -> tuple[str, str]:
     ap = pack["clocks"]["appeal"]
     if not ap.get("available"):
         raise LawError(f"{pack['pack_id']} has no statutory appeal")
@@ -607,12 +676,16 @@ def render_appeal(pack: dict[str, Any], region: str, *, controller: str, name: s
         controller=controller, state=US_REGIONS[region], law_name=pack["law"]["name"],
         citation=pack["law"]["citation"], received_on=received_on, timing_block=timing,
         sender_block=_sender_block(sender, False), name=name,
+        reply_to=reply_to or REPLY_PLACEHOLDER,
     )
     return tid, _tidy(text)
 
 
 def assumptions(sel: Selection, *, sender: str, controller_covered: bool) -> list[str]:
     out = ["Not legal advice. Wording and clocks come from the pack, not from a lawyer."]
+    if sender == "household":
+        out.append("Filed in the person's own name from their own inbox by a household helper with "
+                   "recorded consent; not an authorized-agent filing.")
     if sel.universal:
         out.append(f"Voluntary request ({sel.reason}); no statutory deadline is tracked.")
         return out

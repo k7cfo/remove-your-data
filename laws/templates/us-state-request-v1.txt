@@ -13,4 +13,4 @@ Please confirm receipt, and please use any information I send to verify this req
 $sender_block
 
 Name: $name
-Reply to: [contact address the person chose for this request]
+Reply to: $reply_to

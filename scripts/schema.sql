@@ -171,6 +171,28 @@ CREATE TABLE IF NOT EXISTS residency_attestation (
   revoked_at_utc TEXT
 );
 
+-- Who files for a person, and how. household_inbox: a spouse/partner, parent of a minor, or
+-- adult family member files the person's own request in the person's name from the person's
+-- own inbox (so verify/OTP links land there), with recorded consent. Not authorized-agent filing.
+CREATE TABLE IF NOT EXISTS filing_authority (
+  id INTEGER PRIMARY KEY,
+  person_id INTEGER NOT NULL REFERENCES person(id),
+  mode TEXT NOT NULL
+    CHECK (mode IN ('self', 'household_inbox', 'guardian', 'authorized_agent')),
+  filer TEXT NOT NULL,
+  relationship TEXT NOT NULL
+    CHECK (relationship IN ('self', 'spouse_partner', 'parent_of_minor',
+                            'adult_family_member', 'other_adult')),
+  consent_basis TEXT NOT NULL
+    CHECK (consent_basis IN ('self', 'subject_consent', 'parent_or_guardian_of_minor')),
+  consent_on TEXT,
+  consent_note TEXT,
+  inbox TEXT,
+  inbox_permission INTEGER NOT NULL DEFAULT 0,
+  created_at_utc TEXT NOT NULL,
+  revoked_at_utc TEXT
+);
+
 CREATE TABLE IF NOT EXISTS privacy_request (
   id INTEGER PRIMARY KEY,
   person_id INTEGER NOT NULL REFERENCES person(id),
@@ -186,6 +208,9 @@ CREATE TABLE IF NOT EXISTS privacy_request (
   selection_reason TEXT NOT NULL,
   rights TEXT NOT NULL,
   sender TEXT NOT NULL,
+  filing_mode TEXT,
+  filing_authority_id INTEGER REFERENCES filing_authority(id),
+  inbox TEXT,
   template_id TEXT NOT NULL,
   rendered_text TEXT NOT NULL,
   rendered_sha256 TEXT NOT NULL,
@@ -207,6 +232,7 @@ CREATE INDEX IF NOT EXISTS idx_listing_status ON listing(person_id, status);
 CREATE INDEX IF NOT EXISTS idx_clock_due ON clock(status, due_at_utc);
 CREATE INDEX IF NOT EXISTS idx_action_when ON action_log(occurred_at_utc);
 CREATE INDEX IF NOT EXISTS idx_ident_person ON identifier(person_id, kind);
+CREATE INDEX IF NOT EXISTS idx_filing_authority_person ON filing_authority(person_id);
 CREATE INDEX IF NOT EXISTS idx_privacy_request_person ON privacy_request(person_id, broker_id);
 
 CREATE VIEW IF NOT EXISTS v_evidence_chronology AS

@@ -18,6 +18,7 @@ them; `ryd.py law-plan` / `law-request` / `law-event` use them. Not legal advice
   skip weekends and US federal holidays only.
 - Clocks count from the controller's **receipt** date, recorded by the user.
 - Appeal filing windows are never numbers. Statutes say "reasonable period".
+- Household inbox filing (a helper files the person's own request in their name from their own inbox, with recorded consent or as guardian of a minor) is not agent filing; agent rules are not applied to it.
 - `authorized_agent`: `true` (statute allows it), `false` (no provision found in
   the text checked), `null` (unverified). A request sent by an agent fails for
   `false` rights and warns for `null`.

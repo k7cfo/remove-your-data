@@ -8,4 +8,4 @@ $timing_block
 $sender_block
 
 Name: $name
-Reply to: [contact address the person chose for this request]
+Reply to: $reply_to
