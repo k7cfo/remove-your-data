@@ -4,6 +4,10 @@ Agent skill: remove a person's listings from people-search sites and data broker
 
 This is not legal advice.
 
+![Example results: 21 data-broker listings found, 14 removed](docs/progress-infographic.png)
+
+*Example: one household's results using this project (as of Oct 2026).*
+
 ## Quickstart
 
 Paste this URL into your coding agent (Claude, Codex, Pi, OMP, Hermes, OpenClaw, Cursor, Grok, or anything that can clone a repo and read `AGENTS.md` / `SKILL.md`):
