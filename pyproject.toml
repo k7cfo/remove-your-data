@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Agent skill and localhost dashboard to remove personal data from data brokers without paying deletion services."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
-authors = [{ name = "remove-your-data contributors" }]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Nick Newsom (@k7cfo)" }]
 
 [project.urls]
 Canonical = "https://github.com/k7cfo/remove-your-data"

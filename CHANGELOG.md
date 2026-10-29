@@ -19,9 +19,12 @@ First public drop. Agent-first skill + localhost app.
 
 ### Changed
 
-- README is agent-first: paste the repo URL, read `AGENTS.md` then `SKILL.md`. Do not fork; open PRs here. License at the bottom.
+- README is agent-first: paste the repo URL, read `AGENTS.md` then `SKILL.md`. Open PRs here. License at the bottom.
 
 ## Unreleased
+
+- **License:** relicensed to Apache-2.0 by the sole copyright holder, Nick Newsom (@k7cfo). Added `NOTICE` and `CITATION.cff`; forks are welcome, keep `NOTICE`.
+- **Chat-first reporting:** new `ryd.py recap` (read-only session-start summary with a ledger digest) and `ryd.py report` (`--md` default, `--text`, `--json`, `--image` PNG status card; Pillow optional, `RYD_NO_PIL=1` forces the built-in renderer). Output has vendor names, statuses, counts, and relative due dates only. Agents run `recap` first every session and present the card in chat; the dashboard is an optional view.
 
 - Note standalone LinkedIn scrapers / professional people directories without home phone or address are out of scope.
 

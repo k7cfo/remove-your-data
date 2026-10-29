@@ -1,4 +1,5 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Nick Newsom (@k7cfo) — https://github.com/k7cfo/remove-your-data
 from __future__ import annotations
 
 import datetime as dt

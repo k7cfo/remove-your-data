@@ -1,15 +1,15 @@
 remove-your-data
-Copyright (C) 2026 the remove-your-data contributors
+Copyright 2026 Nick Newsom (@k7cfo) (https://github.com/k7cfo)
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Originally created by Nick Newsom (@k7cfo). https://github.com/k7cfo/remove-your-data
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
+This product includes software developed by Nick Newsom (@k7cfo) and
+the remove-your-data contributors. If you redistribute or publish a
+derivative of this work, retain this NOTICE (Apache License 2.0 section 4(d))
+and the copyright notices in the source files.
+
+"remove-your-data" is the name of the original project; the Apache License
+does not grant permission to use it as the name of a derivative (section 6).
 
 This project is an operations playbook. It is not legal advice.
 

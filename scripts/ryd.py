@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Nick Newsom (@k7cfo) — https://github.com/k7cfo/remove-your-data
 """Workspace helper and localhost running-report dashboard. Stdlib only."""
 
 from __future__ import annotations
@@ -1468,7 +1469,7 @@ def render_html(report: dict[str, Any], *, live: bool, hero: bool = False) -> st
     <h2>Evidence chronology</h2>
     {table(["UTC", "Actor", "Broker", "Action", "Result", "URL"], log_rows)}
   </div>
-  <footer>AGPL-3.0-or-later · local legal log · not legal advice · do not bind this to a public interface</footer>
+  <footer>Apache-2.0 · local legal log · not legal advice · do not bind this to a public interface</footer>
 </div>
 </body>
 </html>
@@ -2339,6 +2340,60 @@ def cmd_add_ident(args: argparse.Namespace) -> int:
 
 
 
+def _report_module():
+    here = str(Path(__file__).resolve().parent)
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import ryd_report  # noqa: PLC0415
+    return ryd_report
+
+
+def _load_for_cli(args: argparse.Namespace) -> dict[str, Any] | None:
+    db = args.workspace / "takedown.db"
+    if not db.exists():
+        print(f"missing {db} - run: ryd.py init --workspace {args.workspace}", file=sys.stderr)
+        return None
+    return report_from_db(db, args.person_id)
+
+
+def cmd_recap(args: argparse.Namespace) -> int:
+    """Read-only session-start summary for an agent that has lost context."""
+    rr = _report_module()
+    report = _load_for_cli(args)
+    if report is None:
+        return 1
+    model = rr.card_model(report, names=args.names)
+    sys.stdout.write(rr.render_json(model) if args.json else rr.render_recap(report, model))
+    return 0
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    """Chat-ready results: --md (default) | --text | --json | --image."""
+    rr = _report_module()
+    report = _load_for_cli(args)
+    if report is None:
+        return 1
+    model = rr.card_model(report, names=args.names)
+    if args.image:
+        png, backend = rr.render_png(model, theme=args.theme, backend=args.backend)
+        out = args.out or (args.workspace / "exports" / "report-card.png")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(png)
+        print(out)
+        print(f"# renderer={backend}; attach this PNG in chat. If the host cannot show images, "
+              f"send: ryd.py report --md", file=sys.stderr)
+        return 0
+    if args.json:
+        sys.stdout.write(rr.render_json(model))
+    elif args.text:
+        sys.stdout.write(rr.render_text(model))
+    else:
+        sys.stdout.write(rr.render_md(model, emoji=not args.no_emoji))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="ryd",
@@ -2404,6 +2459,28 @@ def build_parser() -> argparse.ArgumentParser:
     st.add_argument("--paused", choices=("0", "1"))
     st.add_argument("--apply-people", action="store_true")
     st.set_defaults(func=cmd_settings)
+
+    rc = sub.add_parser("recap", help="read-only session-start recap of the ledger (for agents)")
+    rc.add_argument("--workspace", type=Path, required=True)
+    rc.add_argument("--person-id", type=int)
+    rc.add_argument("--json", action="store_true")
+    rc.add_argument("--names", choices=("label", "initials", "none"), default="label")
+    rc.set_defaults(func=cmd_recap)
+
+    rp = sub.add_parser("report", help="chat-ready results: markdown (default), text, json, or PNG card")
+    rp.add_argument("--workspace", type=Path, required=True)
+    rp.add_argument("--person-id", type=int)
+    fmt = rp.add_mutually_exclusive_group()
+    fmt.add_argument("--md", action="store_true")
+    fmt.add_argument("--text", action="store_true")
+    fmt.add_argument("--json", action="store_true")
+    fmt.add_argument("--image", action="store_true", help="write a PNG summary card, print its path")
+    rp.add_argument("--out", type=Path)
+    rp.add_argument("--theme", choices=("light", "dark"), default="light")
+    rp.add_argument("--names", choices=("label", "initials", "none"), default="label")
+    rp.add_argument("--backend", choices=("auto", "pillow", "stdlib"), default="auto")
+    rp.add_argument("--no-emoji", action="store_true")
+    rp.set_defaults(func=cmd_report)
     return p
 
 
