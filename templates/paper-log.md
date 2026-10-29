@@ -30,9 +30,7 @@ chmod 700 the folder if you can.
 | anonymity_mode | dedicated | |
 | verify_email | | |
 | filing_mode (self / household_inbox / guardian / authorized_agent) | self | |
-| filer + relationship | self | |
-| consent (date, how; or guardian of minor) | self | |
-| inbox used + permission to use it | | |
+| inbox used (family: their own) | | |
 | keep_host / keep_url | | |
 | intake_complete | 0 | |
 | drop_filed | 0 | |

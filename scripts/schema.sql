@@ -171,9 +171,10 @@ CREATE TABLE IF NOT EXISTS residency_attestation (
   revoked_at_utc TEXT
 );
 
--- Who files for a person, and how. household_inbox: a spouse/partner, parent of a minor, or
--- adult family member files the person's own request in the person's name from the person's
--- own inbox (so verify/OTP links land there), with recorded consent. Not authorized-agent filing.
+-- Optional note of who files for a person, and how (ryd.py record-filer). Nothing requires a row:
+-- family members default to household_inbox (the person's own request, in their name, from their
+-- own inbox, so verify/OTP links land there). relationship / consent_basis are inferred from the
+-- roster, never asked for. Not authorized-agent filing.
 CREATE TABLE IF NOT EXISTS filing_authority (
   id INTEGER PRIMARY KEY,
   person_id INTEGER NOT NULL REFERENCES person(id),
@@ -185,10 +186,8 @@ CREATE TABLE IF NOT EXISTS filing_authority (
                             'adult_family_member', 'other_adult')),
   consent_basis TEXT NOT NULL
     CHECK (consent_basis IN ('self', 'subject_consent', 'parent_or_guardian_of_minor')),
-  consent_on TEXT,
   consent_note TEXT,
   inbox TEXT,
-  inbox_permission INTEGER NOT NULL DEFAULT 0,
   created_at_utc TEXT NOT NULL,
   revoked_at_utc TEXT
 );

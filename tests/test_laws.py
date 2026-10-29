@@ -500,9 +500,6 @@ class LedgerTests(unittest.TestCase):
     def test_agent_blocked_rights_refuse_to_render(self) -> None:
         pid = self.person(consent="authorized_agent", relationship="other")
         ryd.record_attestation(self.con, pid, "CO")
-        ryd.record_filer(self.con, pid, mode="authorized_agent", filer="friend", relationship="other_adult",
-                         consent_basis="subject_consent", consent_on="2026-10-01",
-                         consent_note="asked me in writing")
         with self.assertRaises(ValueError):
             self.request(pid, rights=["delete"])
         out = self.request(pid, rights=["opt_out"])
@@ -558,7 +555,7 @@ class LedgerTests(unittest.TestCase):
 
 
 class FilingModeTests(unittest.TestCase):
-    """Household-inbox filing: a family helper files the person's own request from their inbox."""
+    """Household-inbox filing: family files as the person, from their own inbox, with no extra steps."""
 
     INBOX = "subject.demo@example.com"
 
@@ -572,23 +569,20 @@ class FilingModeTests(unittest.TestCase):
         self.con.close()
         self.tmp.cleanup()
 
-    def person(self, region="CO", consent="authorized_agent", relationship="spouse", name="Sam Example") -> int:
+    def person(self, region="CO", consent="authorized_agent", relationship="spouse", name="Sam Example",
+               inbox=INBOX) -> int:
         self.con.execute(
             "INSERT INTO person (legal_name, residency_country, residency_region, relationship,"
             " consent_basis, active, intake_complete, created_at_utc) VALUES (?, 'US', ?, ?, ?, 1, 1, ?)",
             (name, region, relationship, consent, ryd.utc_iso()),
         )
         pid = int(self.con.execute("SELECT last_insert_rowid()").fetchone()[0])
+        if inbox:
+            # one email per roster person: subtests reuse the demo inbox on a fresh person
+            self.con.execute("DELETE FROM identifier WHERE kind = 'email' AND normalized = ?", (inbox,))
+            ryd.add_identifier(self.con, pid, "email", inbox)
         ryd.record_attestation(self.con, pid, region)
         return pid
-
-    def household(self, pid, **kw) -> int:
-        args = dict(mode="household_inbox", filer="spouse", relationship="spouse_partner",
-                    consent_basis="subject_consent", consent_on="2026-10-01",
-                    consent_note="asked me in person to handle this", inbox=self.INBOX,
-                    inbox_permission=True)
-        args.update(kw)
-        return ryd.record_filer(self.con, pid, **args)
 
     def request(self, pid, rights=("delete", "opt_out"), **kw):
         return ryd.create_law_request(self.con, pid, "Example Data Co", rights=list(rights),
@@ -601,64 +595,24 @@ class FilingModeTests(unittest.TestCase):
         self.assertIn(f"Name: {name}", text)
         self.assertIn(f"Reply to: {self.INBOX}", text)
 
-    # consent for adults
+    # family: no record, no extra steps
 
-    def test_adult_needs_a_consent_record_before_filing(self) -> None:
-        pid = self.person()
-        with self.assertRaisesRegex(ValueError, "consent record"):
-            self.request(pid)
-        plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
-        self.assertIsNone(plan["filing_mode"])
-        self.assertTrue(any("household_inbox" in w for w in plan["warnings"]))
-
-    def test_adult_consent_fields_are_required(self) -> None:
-        pid = self.person()
-        bad = [
-            {"consent_on": None},
-            {"consent_note": "  "},
-            {"consent_basis": "parent_or_guardian_of_minor"},
-            {"inbox_permission": False},
-            {"inbox": None},
-            {"inbox": "not-an-address"},
-            {"relationship": "other_adult"},
-            {"relationship": "parent_of_minor"},
-            {"mode": "guardian"},
-            {"mode": "self"},
-            {"filer": ""},
-        ]
-        for change in bad:
-            with self.subTest(change=change):
-                with self.assertRaises(ValueError):
-                    self.household(pid, **change)
-        self.assertIsNone(ryd.current_filer(self.con, pid))
-
-    def test_unconfirmed_roster_person_cannot_get_a_filer(self) -> None:
-        pid = self.person()
-        self.con.execute("UPDATE person SET consent_basis = 'unconfirmed' WHERE id = ?", (pid,))
-        with self.assertRaises(ValueError):
-            self.household(pid)
-
-    def test_filing_record_rechecked_against_roster(self) -> None:
-        pid = self.person()
-        self.household(pid)
-        self.con.execute("UPDATE person SET consent_basis = 'parent_of_minor' WHERE id = ?", (pid,))
-        with self.assertRaisesRegex(ValueError, "no longer fits"):
-            self.request(pid)
-
-    def test_household_inbox_letter_is_first_person_and_recorded(self) -> None:
-        pid = self.person()
-        fid = self.household(pid)
-        out = self.request(pid)
-        self.assert_first_person(out["text"], "Sam Example")
-        self.assertIn("I am a resident of Colorado", out["text"])
-        self.assertIn("To the extent your organization is subject to", out["text"])
-        row = ryd.get_law_request(self.con, out["id"])
-        self.assertEqual((row["filing_mode"], row["filing_authority_id"], row["inbox"], row["sender"]),
-                         ("household_inbox", fid, self.INBOX, "household"))
-        self.assertTrue(any("not an authorized-agent filing" in a for a in json.loads(row["assumptions"])))
-        auth = ryd.current_filer(self.con, pid)
-        self.assertEqual((auth["filer"], auth["relationship"], auth["consent_basis"]),
-                         ("spouse", "spouse_partner", "subject_consent"))
+    def test_family_adult_files_with_no_consent_record(self) -> None:
+        for rel in ("spouse", "partner", "parent", "child"):
+            with self.subTest(relationship=rel):
+                pid = self.person(relationship=rel)
+                self.assertIsNone(ryd.current_filer(self.con, pid))
+                plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
+                self.assertEqual(plan["filing_mode"], "household_inbox")
+                self.assertIsNone(plan["filing_error"])
+                self.assertFalse(any("consent" in w.lower() for w in plan["warnings"]))
+                out = self.request(pid)
+                self.assert_first_person(out["text"], "Sam Example")
+                row = ryd.get_law_request(self.con, out["id"])
+                self.assertEqual((row["filing_mode"], row["filing_authority_id"], row["inbox"], row["sender"]),
+                                 ("household_inbox", None, self.INBOX, "household"))
+                self.assertTrue(any("not an authorized-agent filing" in a
+                                    for a in json.loads(row["assumptions"])))
 
     def test_household_inbox_skips_agent_restrictions(self) -> None:
         for code, (*_r, agent_opt, agent_delete) in EXPECTED.items():
@@ -666,7 +620,6 @@ class FilingModeTests(unittest.TestCase):
                 continue
             with self.subTest(code=code):
                 pid = self.person(region=code)
-                self.household(pid)
                 plan = ryd.plan_law_request(self.con, pid, rights=["delete", "opt_out"], today=TODAY, packs=PACKS)
                 self.assertEqual(plan["blocked"], [])
                 self.assertFalse(any("agent may submit" in w.lower() for w in plan["warnings"]))
@@ -675,53 +628,61 @@ class FilingModeTests(unittest.TestCase):
 
     def test_household_universal_letter_has_no_helper_language(self) -> None:
         pid = self.person(region="NY")
-        self.household(pid)
         out = self.request(pid)
         self.assertIn("voluntary request", out["text"])
         self.assert_first_person(out["text"], "Sam Example")
 
     def test_household_appeal_keeps_first_person(self) -> None:
         pid = self.person(region="MN")
-        self.household(pid)
         out = self.request(pid, received_on="2026-11-02")
         appeal = ryd.create_law_appeal(self.con, out["id"], packs=PACKS)
         self.assert_first_person(appeal["text"], "Sam Example")
         self.assertEqual(ryd.get_law_request(self.con, appeal["id"])["filing_mode"], "household_inbox")
 
-    def test_adult_family_member_allowed(self) -> None:
-        pid = self.person(relationship="adult child")
-        self.household(pid, filer="parent", relationship="adult_family_member")
-        self.assert_first_person(self.request(pid)["text"], "Sam Example")
+    def test_no_roster_email_uses_placeholder(self) -> None:
+        pid = self.person(inbox=None)
+        text = self.request(pid)["text"]
+        self.assertIn("[contact address the person chose for this request]", text)
+        self.assertNotIn("agent", text)
 
-    # minors
-
-    def test_minor_default_is_guardian_letter_with_tip(self) -> None:
+    def test_minor_defaults_to_household_inbox(self) -> None:
         pid = self.person(consent="parent_of_minor", relationship="child", name="Alex Example")
+        out = self.request(pid)
+        self.assertEqual(out["plan"]["filing_mode"], "household_inbox")
+        self.assert_first_person(out["text"], "Alex Example")
+
+    def test_unconfirmed_roster_person_still_not_filed(self) -> None:
+        pid = self.person()
+        self.con.execute("UPDATE person SET consent_basis = 'unconfirmed' WHERE id = ?", (pid,))
+        with self.assertRaises(ValueError):
+            self.request(pid)
+
+    # optional record-filer note
+
+    def test_record_filer_is_optional_note(self) -> None:
+        pid = self.person()
+        fid = ryd.record_filer(self.con, pid, mode="household_inbox", note="file as them")
+        out = self.request(pid)
+        self.assert_first_person(out["text"], "Sam Example")
+        row = ryd.get_law_request(self.con, out["id"])
+        self.assertEqual((row["filing_mode"], row["filing_authority_id"]), ("household_inbox", fid))
+        auth = ryd.current_filer(self.con, pid)
+        self.assertEqual((auth["filer"], auth["relationship"], auth["consent_note"]),
+                         ("household", "spouse_partner", "file as them"))
+
+    def test_minor_guardian_letter_on_request(self) -> None:
+        pid = self.person(consent="parent_of_minor", relationship="child", name="Alex Example")
+        ryd.record_filer(self.con, pid, mode="guardian")
         plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
         self.assertEqual(plan["filing_mode"], "guardian")
-        self.assertTrue(any("household_inbox" in w for w in plan["warnings"]))
+        self.assertTrue(any("household inbox" in w for w in plan["warnings"]))
         self.assertIn("parent or legal guardian", self.request(pid)["text"])
-
-    def test_minor_household_inbox_from_guardian(self) -> None:
-        pid = self.person(consent="parent_of_minor", relationship="child", name="Alex Example")
-        with self.assertRaises(ValueError):
-            self.household(pid, filer="parent", relationship="parent_of_minor")  # wrong consent basis
-        with self.assertRaises(ValueError):
-            self.household(pid, filer="parent", relationship="parent_of_minor",
-                           consent_basis="parent_or_guardian_of_minor", mode="authorized_agent")
-        self.household(pid, filer="parent", relationship="parent_of_minor",
-                       consent_basis="parent_or_guardian_of_minor", consent_on=None, consent_note=None)
-        out = self.request(pid)
-        self.assert_first_person(out["text"], "Alex Example")
-        plan = out["plan"]
-        self.assertEqual(plan["filing_mode"], "household_inbox")
-        self.assertFalse(any("household_inbox" in w for w in plan["warnings"]))
 
     # agent path unchanged
 
     def test_agent_path_keeps_state_checks(self) -> None:
         pid = self.person()
-        self.household(pid, mode="authorized_agent", inbox=None, inbox_permission=False)
+        ryd.record_filer(self.con, pid, mode="authorized_agent")
         with self.assertRaises(ValueError):
             self.request(pid, rights=["delete"])
         text = self.request(pid, rights=["opt_out"])["text"]
@@ -729,30 +690,38 @@ class FilingModeTests(unittest.TestCase):
         self.assertIn("[contact address the person chose for this request]", text)
         plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
         self.assertEqual(plan["blocked"], ["delete"])
-        self.assertTrue(any("household_inbox" in w for w in plan["warnings"]))
+        self.assertTrue(any("household inbox" in w for w in plan["warnings"]))
+
+    def test_non_family_defaults_to_agent_path(self) -> None:
+        pid = self.person(relationship="other")
+        plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
+        self.assertEqual(plan["filing_mode"], "authorized_agent")
+        self.assertEqual(plan["blocked"], ["delete"])
 
     def test_agent_path_unverified_warning(self) -> None:
         pid = self.person(region="UT")
-        self.household(pid, mode="authorized_agent", inbox=None, inbox_permission=False)
+        ryd.record_filer(self.con, pid, mode="authorized_agent")
         plan = ryd.plan_law_request(self.con, pid, rights=["delete"], today=TODAY, packs=PACKS)
         self.assertTrue(any(w.startswith("unverified: whether an agent") for w in plan["warnings"]))
 
     def test_switching_mode_revokes_previous_record(self) -> None:
         pid = self.person()
-        first = self.household(pid)
-        second = self.household(pid, mode="authorized_agent", inbox=None, inbox_permission=False)
+        first = ryd.record_filer(self.con, pid, mode="household_inbox")
+        second = ryd.record_filer(self.con, pid, mode="authorized_agent")
         self.assertEqual(ryd.current_filer(self.con, pid)["id"], second)
         revoked = self.con.execute("SELECT revoked_at_utc FROM filing_authority WHERE id = ?", (first,)).fetchone()[0]
         self.assertIsNotNone(revoked)
 
     def test_self_mode_for_primary_only(self) -> None:
-        pid = self.person(consent="self", relationship="self")
+        pid = self.person()
         with self.assertRaises(ValueError):
-            self.household(pid)
-        ryd.record_filer(self.con, pid, mode="self", filer="self", relationship="self", consent_basis="self")
-        self.assertIn("I am sending this request myself", self.request(pid)["text"])
+            ryd.record_filer(self.con, pid, mode="self")
+        me = self.person(consent="self", relationship="self", inbox=None)
+        with self.assertRaises(ValueError):
+            ryd.record_filer(self.con, me, mode="household_inbox")
+        self.assertIn("I am sending this request myself", self.request(me)["text"])
 
-    def test_cli_record_filer_and_plan(self) -> None:
+    def test_cli_plan_without_record_and_optional_record_filer(self) -> None:
         pid = self.person()
         self.con.commit()
         ws = str(self.workspace)
@@ -763,36 +732,26 @@ class FilingModeTests(unittest.TestCase):
                 code = ryd.main(list(argv))
             return code, out.getvalue(), err.getvalue()
 
-        base = ("record-filer", "--workspace", ws, "--person-id", str(pid), "--mode", "household-inbox",
-                "--filer", "spouse", "--relationship", "spouse-partner", "--consent", "subject-consent",
-                "--inbox", self.INBOX)
-        code, _out, err = run(*base, "--inbox-permission")
-        self.assertEqual(code, 1)
-        self.assertIn("consent", err)
-        code, _out, err = run(*base, "--inbox-permission", "--consent-on", "2026-10-01",
-                              "--consent-note", "asked me in person")
+        code, out, err = run("law-plan", "--workspace", ws, "--person-id", str(pid))
         self.assertEqual(code, 0, err)
-        code, out, _ = run("law-plan", "--workspace", ws, "--person-id", str(pid))
-        self.assertEqual(code, 0)
         self.assertIn("filing: household inbox", out)
         self.assertIn("not an authorized agent", out)
+        code, _out, err = run("record-filer", "--workspace", ws, "--person-id", str(pid),
+                              "--mode", "authorized-agent")
+        self.assertEqual(code, 0, err)
+        code, out, _ = run("law-plan", "--workspace", ws, "--person-id", str(pid))
+        self.assertIn("filing: authorized agent", out)
+        with self.assertRaises(SystemExit):
+            run("record-filer", "--workspace", ws, "--person-id", str(pid), "--mode", "proxy")
 
 
 class CheckFilingTests(unittest.TestCase):
     def test_rules(self) -> None:
-        ok = dict(mode="household_inbox", relationship="spouse_partner", consent_basis="subject_consent",
-                  roster_consent="authorized_agent", inbox="a@example.com", inbox_permission=True,
-                  consent_on="2026-10-01", consent_note="asked")
-        self.assertEqual(laws.check_filing(**ok), [])
-        self.assertTrue(laws.check_filing(**{**ok, "mode": "proxy"}))
-        self.assertTrue(laws.check_filing(**{**ok, "consent_on": "Oct 1"}))
-        self.assertTrue(laws.check_filing(**{**ok, "roster_consent": "self"}))
-        self.assertTrue(laws.check_filing(**{**ok, "roster_consent": "unconfirmed"}))
-        minor = dict(ok, relationship="parent_of_minor", consent_basis="parent_or_guardian_of_minor",
-                     roster_consent="parent_of_minor", consent_on=None, consent_note=None)
-        self.assertEqual(laws.check_filing(**minor), [])
-        self.assertEqual(laws.check_filing(**{**minor, "mode": "guardian", "inbox": None,
-                                              "inbox_permission": False}), [])
+        self.assertEqual(laws.check_filing(mode="household_inbox", self_filer=False), [])
+        self.assertEqual(laws.check_filing(mode="guardian", self_filer=False), [])
+        self.assertEqual(laws.check_filing(mode="self", self_filer=True), [])
+        self.assertTrue(laws.check_filing(mode="proxy", self_filer=False))
+        self.assertTrue(laws.check_filing(mode="self", self_filer=False))
         self.assertEqual(laws.MODE_TO_SENDER["household_inbox"], "household")
         self.assertEqual(laws.agent_check(pack("CO"), ["delete"], "household"), ([], []))
 

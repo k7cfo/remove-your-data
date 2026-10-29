@@ -12,7 +12,7 @@ Author: Nick Newsom (@k7cfo). License: Apache-2.0 (see `LICENSE`, `NOTICE`). For
 1. Read [`SKILL.md`](SKILL.md) in full. That is the playbook. Do not improvise a parallel process.
 2. **§0 capability.** List tools this host already has (`python3`, folder, browser, search, mailbox, scheduler). Do not install software they did not ask for. Missing a tool is not a stop: use what you have, or coach the human (`SKILL.md` §0). Python is optional.
 3. If the roster has no primary person, run **SKILL.md §1 intake 1:1** and **stop**. One question per turn. Do not dump the questionnaire. Roster goes in SQLite (`/roster` or `ryd.py`) **or** `templates/paper-log.md`. Do not search until residency is known **and** intake Q9 is done.
-4. If they live in California, **CA DROP first** — one request per roster person. Other US states and DC: `attest-residency`, `law-plan`, `law-request`, `law-event` (`SKILL.md` §2). Family members: record who files with `record-filer`; recommend **household inbox** (their own name, their own inbox, so verify/OTP links land there) with their recorded consent and permission to use that inbox (`SKILL.md` §1). Packs are data checked against primary sources on a stated date, not legal advice.
+4. If they live in California, **CA DROP first** — one request per roster person. Other US states and DC: `attest-residency`, `law-plan`, `law-request`, `law-event` (`SKILL.md` §2). Family members: **household inbox** is the default (file as the person, in their own name, from their own inbox, so verify/OTP links land there); no extra setup. Authorized-agent filing is the alternative (`record-filer --mode authorized-agent`, `SKILL.md` §1). Packs are data checked against primary sources on a stated date, not legal advice.
 5. Put the workspace **outside this git clone**. Never commit `takedown.db`, paper logs, evidence, DROP IDs, or listing URLs that identify a real person.
 6. After a pass: present results in chat as the generated card (`ryd.py report --image`, plus `report` markdown; `--text` if the host cannot show images). Do not point the user to the dashboard instead. `ryd.py serve` (`/`, `/roster`, `/settings`) is an optional read-only view. Otherwise the paper log is the report. Agents use `ryd.py settings` instead of scraping the page when it exists.
 
@@ -30,7 +30,7 @@ Use whatever this host already has. Do not install software they did not ask for
 ## Do not
 
 - Pay or recommend Incogni, DeleteMe, Optery, or similar
-- Impersonate anyone (household inbox filing needs the person's recorded consent, or guardian of a minor, and permission to use their inbox)
+- Impersonate anyone (household inbox filing for family is fine; file with the person's knowledge)
 - Loop Turnstile / datacenter-blocked forms
 - Bind the dashboard off `127.0.0.1`
 - Put addresses, phones, emails, listing URLs, or request ids in chat reports or cards

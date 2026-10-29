@@ -2462,10 +2462,34 @@ def current_attestation(con: sqlite3.Connection, person_id: int) -> dict[str, An
 
 
 HOUSEHOLD_TIP = (
-    "Recommended for households: file in their own name from their own inbox "
-    "(record-filer --mode household_inbox) so verify/OTP links land in that inbox. "
-    "Only with their permission to use it."
+    "Recommended for family: file as the person, in their own name, from their own inbox "
+    "(household inbox, the default) so verify/OTP links land there."
 )
+FAMILY = ("spouse", "partner", "child", "parent")
+# record-filer columns that old workspaces require; inferred, never asked for.
+FILER_RELATIONSHIP = {"self": "self", "spouse": "spouse_partner", "partner": "spouse_partner",
+                      "child": "adult_family_member", "parent": "adult_family_member"}
+
+
+def person_inbox(con: sqlite3.Connection, person_id: int) -> str | None:
+    row = con.execute(
+        "SELECT value FROM identifier WHERE person_id = ? AND kind = 'email' ORDER BY id LIMIT 1",
+        (person_id,),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def default_filing_mode(person: dict[str, Any]) -> str | None:
+    """Mode used when no record-filer note exists. Family files as the person (household inbox)."""
+    roster = person.get("consent_basis") or "self"
+    rel = person.get("relationship") or "self"
+    if roster == "unconfirmed":
+        return None
+    if roster == "self" or rel == "self":
+        return "self"
+    if roster == "authorized_agent" and rel not in FAMILY:
+        return "authorized_agent"
+    return "household_inbox"
 
 
 def record_filer(
@@ -2473,40 +2497,37 @@ def record_filer(
     person_id: int,
     *,
     mode: str,
-    filer: str,
-    relationship: str,
-    consent_basis: str,
-    consent_on: str | None = None,
-    consent_note: str | None = None,
+    filer: str | None = None,
     inbox: str | None = None,
-    inbox_permission: bool = False,
+    note: str | None = None,
 ) -> int:
-    """Record who files for a person and how; replaces the previous record."""
+    """Optional note of who files for a person and how; replaces the previous note.
+
+    Nothing requires it: without one, family members file in household-inbox mode.
+    """
     laws = _laws_module()
     person = law_person(con, person_id, filing=False)
-    if not person.get("active", 1):
-        raise ValueError("person is inactive")
-    filer = (filer or "").strip()
-    if not filer:
-        raise ValueError("say who is filing (a name or a role such as 'spouse')")
-    inbox = (inbox or "").strip() or None
-    errs = laws.check_filing(
-        mode=mode, relationship=relationship, consent_basis=consent_basis,
-        roster_consent=person.get("consent_basis") or "self", inbox=inbox,
-        inbox_permission=inbox_permission, consent_on=consent_on, consent_note=consent_note,
-    )
+    rel = person.get("relationship") or "self"
+    is_self = (person.get("consent_basis") or "self") == "self" or rel == "self"
+    errs = laws.check_filing(mode=mode, self_filer=is_self)
     if errs:
         raise ValueError("; ".join(errs))
+    if person.get("consent_basis") == "parent_of_minor":
+        relationship, basis = "parent_of_minor", "parent_or_guardian_of_minor"
+    elif is_self:
+        relationship, basis = "self", "self"
+    else:
+        relationship, basis = FILER_RELATIONSHIP.get(rel, "other_adult"), "subject_consent"
     now = utc_iso()
     con.execute(
         "UPDATE filing_authority SET revoked_at_utc = ? WHERE person_id = ? AND revoked_at_utc IS NULL",
         (now, person_id),
     )
     con.execute(
-        "INSERT INTO filing_authority (person_id, mode, filer, relationship, consent_basis, consent_on,"
-        " consent_note, inbox, inbox_permission, created_at_utc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (person_id, mode, filer, relationship, consent_basis, consent_on,
-         (consent_note or "").strip() or None, inbox, int(bool(inbox_permission)), now),
+        "INSERT INTO filing_authority (person_id, mode, filer, relationship, consent_basis,"
+        " consent_note, inbox, created_at_utc) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (person_id, mode, (filer or "").strip() or ("self" if is_self else "household"),
+         relationship, basis, (note or "").strip() or None, (inbox or "").strip() or None, now),
     )
     return int(con.execute("SELECT last_insert_rowid()").fetchone()[0])
 
@@ -2523,34 +2544,18 @@ def current_filer(con: sqlite3.Connection, person_id: int) -> dict[str, Any] | N
 def resolve_filing(con: sqlite3.Connection, person: dict[str, Any]) -> dict[str, Any]:
     """How a request for this person is filed: mode, letter sender, inbox, and any blocker."""
     laws = _laws_module()
-    roster = person.get("consent_basis") or "self"
-    auth = current_filer(con, person["id"])
-    out: dict[str, Any] = {"mode": None, "sender": None, "authority_id": None, "inbox": None,
-                           "filer": None, "relationship": None, "error": None, "tips": []}
+    out: dict[str, Any] = {"mode": default_filing_mode(person), "sender": None, "authority_id": None,
+                           "inbox": None, "filer": None, "error": None, "tips": []}
+    auth = current_filer(con, person["id"]) if out["mode"] else None
     if auth:
-        errs = laws.check_filing(
-            mode=auth["mode"], relationship=auth["relationship"], consent_basis=auth["consent_basis"],
-            roster_consent=roster, inbox=auth["inbox"], inbox_permission=bool(auth["inbox_permission"]),
-            consent_on=auth["consent_on"], consent_note=auth["consent_note"],
-        )
-        out.update(mode=auth["mode"], authority_id=auth["id"], inbox=auth["inbox"],
-                   filer=auth["filer"], relationship=auth["relationship"])
-        if errs:
-            out["error"] = f"filing record #{auth['id']} no longer fits the roster: {'; '.join(errs)}"
-    elif roster == "self":
-        out.update(mode="self", relationship="self")
-    elif roster == "parent_of_minor":
-        out.update(mode="guardian", relationship="parent_of_minor")
-    elif roster == "authorized_agent":
-        out["error"] = ("filing for another adult needs a consent record: run record-filer with "
-                        "--consent-on and --consent-note (household_inbox recommended)")
-    else:
+        out.update(mode=auth["mode"], authority_id=auth["id"], inbox=auth["inbox"], filer=auth["filer"])
+    if out["mode"] is None:
         out["error"] = "consent is unconfirmed; do not file for this person"
-    if out["mode"]:
-        out["sender"] = laws.MODE_TO_SENDER[out["mode"]]
-    if out["mode"] in ("guardian", "authorized_agent") and out["relationship"] != "other_adult":
-        out["tips"].append(HOUSEHOLD_TIP)
-    elif out["mode"] is None and roster == "authorized_agent":
+        return out
+    if out["mode"] == "household_inbox" and not out["inbox"]:
+        out["inbox"] = person_inbox(con, person["id"])
+    out["sender"] = laws.MODE_TO_SENDER[out["mode"]]
+    if out["mode"] in ("guardian", "authorized_agent") and person.get("relationship") in FAMILY:
         out["tips"].append(HOUSEHOLD_TIP)
     return out
 
@@ -2614,7 +2619,7 @@ def plan_law_request(
         "person_id": person_id, "region": region, "pack": sel.pack_ref,
         "universal": sel.universal, "reason": sel.reason, "rights": rights,
         "sender": sender, "filing_mode": filing["mode"], "filing_authority_id": filing["authority_id"],
-        "filer": filing["filer"], "filer_relationship": filing["relationship"], "inbox": filing["inbox"],
+        "filer": filing["filer"], "inbox": filing["inbox"],
         "filing_error": filing["error"],
         "attestation_id": att["id"] if attested else None,
         "warnings": warnings, "blocked": blocked,
@@ -2822,15 +2827,15 @@ def _print_clocks(clocks: list[dict[str, Any]]) -> None:
 def _filing_line(plan: dict[str, Any]) -> str:
     mode = plan.get("filing_mode")
     if mode == "household_inbox":
-        return (f"household inbox - {plan['filer']} ({plan['filer_relationship']}) files in the person's "
-                "own name from their own inbox; verify/OTP links go there; not an authorized agent")
+        return ("household inbox - filed as the person, in their own name, from their own inbox; "
+                "verify/OTP links go there; not an authorized agent")
     if mode == "guardian":
         return "guardian - letter says a parent or guardian of a minor is sending it"
     if mode == "authorized_agent":
-        return f"authorized agent - {plan['filer']}; per-state agent rules apply"
+        return "authorized agent - per-state agent rules apply"
     if mode == "self":
         return "self"
-    return "not recorded"
+    return "not allowed"
 
 
 def cmd_record_filer(args: argparse.Namespace) -> int:
@@ -2839,13 +2844,8 @@ def cmd_record_filer(args: argparse.Namespace) -> int:
         return 1
     try:
         with connect(db, readonly=False) as con:
-            fid = record_filer(
-                con, args.person_id, mode=args.mode.replace("-", "_"), filer=args.filer,
-                relationship=args.relationship.replace("-", "_"),
-                consent_basis=args.consent.replace("-", "_"), consent_on=args.consent_on,
-                consent_note=args.consent_note, inbox=args.inbox,
-                inbox_permission=args.inbox_permission,
-            )
+            fid = record_filer(con, args.person_id, mode=args.mode.replace("-", "_"),
+                               filer=args.filer, inbox=args.inbox, note=args.note)
             con.commit()
     except ValueError as exc:
         print(exc, file=sys.stderr)
@@ -3088,26 +3088,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     rf = sub.add_parser(
         "record-filer",
-        help="record who files for a person and how (household_inbox recommended for family)",
+        help="optional: switch how a person's requests are filed (family default: household inbox)",
     )
     rf.add_argument("--workspace", type=Path, required=True)
     rf.add_argument("--person-id", type=int, required=True)
     rf.add_argument("--mode", required=True,
                     choices=("self", "household_inbox", "household-inbox", "guardian",
                              "authorized_agent", "authorized-agent"))
-    rf.add_argument("--filer", required=True, help="who is filing: a name or a role such as 'spouse'")
-    rf.add_argument("--relationship", required=True,
-                    choices=("self", "spouse_partner", "parent_of_minor", "adult_family_member",
-                             "other_adult", "spouse-partner", "parent-of-minor",
-                             "adult-family-member", "other-adult"))
-    rf.add_argument("--consent", required=True,
-                    choices=("self", "subject_consent", "parent_or_guardian_of_minor",
-                             "subject-consent", "parent-or-guardian-of-minor"))
-    rf.add_argument("--consent-on", help="date the adult consented, YYYY-MM-DD (required for adults)")
-    rf.add_argument("--consent-note", help="how the adult consented (required for adults)")
-    rf.add_argument("--inbox", help="the person's own email address used to file (household_inbox)")
-    rf.add_argument("--inbox-permission", action="store_true",
-                    help="the person (or, for a minor, their guardian) lets the filer use that inbox")
+    rf.add_argument("--filer", help="optional: who files, such as 'spouse'")
+    rf.add_argument("--inbox", help="optional: the person's own email (default: their roster email)")
+    rf.add_argument("--note", help="optional free-text note")
     rf.set_defaults(func=cmd_record_filer)
 
     lp = sub.add_parser("law-plan", help="read-only: which law pack, wording and clocks apply")
