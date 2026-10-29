@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-tn",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "TN",
+    "name": "Tennessee"
+  },
+  "law": {
+    "name": "Tennessee Information Protection Act",
+    "citation": "Tenn. Code Ann. 47-18-3201 et seq. (2023 Pub. Ch. 408)",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-07-01",
+    "effective_date_source": "TN-bill"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "TN-pc",
+      "title": "Tennessee 2023 Public Chapter No. 408 (HB 1181)",
+      "url": "https://publications.tnsosfiles.com/acts/113/pub/pc0408.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "2bba6177abce35939fda0cce79ec0b80378ac52ebae6759163ed079be161aaea",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "TN-bill",
+      "title": "Tennessee General Assembly bill info, HB 1181 (Pub. Ch. 408)",
+      "url": "https://wapp.capitol.tn.gov/apps/BillInfo/Default?BillNumber=HB1181&ga=113",
+      "checked_on": "2026-10-29",
+      "sha256": "883a2a42f68253b8d91cf173f797205a4eb87cf33d2e3fb59d22f7de69fa619a",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "TN-pc",
+    "cite": "47-18-3203"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "TN-pc",
+      "cite": "47-18-3204"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "TN-pc",
+      "cite": "47-18-3204",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "TN-pc",
+        "cite": "47-18-3204"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

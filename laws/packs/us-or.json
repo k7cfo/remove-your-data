@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-or",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "OR",
+    "name": "Oregon"
+  },
+  "law": {
+    "name": "Oregon Consumer Privacy Act",
+    "citation": "ORS 646A.570-646A.589",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2024-07-01",
+    "effective_date_source": "OR-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "OR-stat",
+      "title": "Oregon Revised Statutes chapter 646A (646A.570-646A.589)",
+      "url": "https://www.oregonlegislature.gov/bills_laws/ors/ors646a.html",
+      "checked_on": "2026-10-29",
+      "sha256": "306c4aedd2e9d201389b4f90ede3c3d3373b7f62ec2d0cd497c5dcbd3f656de1",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "OR-act",
+      "title": "Oregon SB 619 (2023) enrolled, section 15",
+      "url": "https://olis.oregonlegislature.gov/liz/2023R1/Downloads/MeasureDocument/SB619/Enrolled",
+      "checked_on": "2026-10-29",
+      "sha256": "5e85a2838b67c030507e8df64d87fe8ad62920afcfdfd65c009438b7636a079a",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "OR-stat",
+    "cite": "646A.574; 646A.576(7)",
+    "note": "For data obtained from another source, 646A.576(7) lets a controller comply by keeping a minimal record and opting the consumer out instead of deleting."
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "OR-stat",
+      "cite": "646A.576"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "OR-stat",
+      "cite": "646A.576",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 45,
+        "day_type": "calendar",
+        "source": "OR-stat",
+        "cite": "646A.576"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

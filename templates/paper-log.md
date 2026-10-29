@@ -29,6 +29,8 @@ chmod 700 the folder if you can.
 | cadence_hours | 168 | |
 | anonymity_mode | dedicated | |
 | verify_email | | |
+| filing_mode (self / household_inbox / guardian / authorized_agent) | self | |
+| inbox used (family: their own) | | |
 | keep_host / keep_url | | |
 | intake_complete | 0 | |
 | drop_filed | 0 | |

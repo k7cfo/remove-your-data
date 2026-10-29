@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-mt",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "MT",
+    "name": "Montana"
+  },
+  "law": {
+    "name": "Montana Consumer Data Privacy Act",
+    "citation": "Mont. Code Ann. 30-14-2801 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2024-10-01",
+    "effective_date_source": "MT-eff"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "MT-stat",
+      "title": "Montana Code Annotated 30-14-2808 (current)",
+      "url": "https://mca.legmt.gov/bills/mca/title_0300/chapter_0140/part_0280/section_0080/0300-0140-0280-0080.html",
+      "checked_on": "2026-10-29",
+      "sha256": "72d23484949872530654ac1dd85153d570b872b243bc35e85b86f92c73104b96",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope"
+      ]
+    },
+    {
+      "id": "MT-eff",
+      "title": "Montana Code Annotated 2023, 30-14-2801 (Effective October 1, 2024)",
+      "url": "https://mca.legmt.gov/bills/2023/mca/title_0300/chapter_0140/part_0280/section_0010/0300-0140-0280-0010.html",
+      "checked_on": "2026-10-29",
+      "sha256": "aa072fd09b832e33856503248d736d06d5393a90c536d3ebd42ac2d13a044220",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (30-14-2809) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (30-14-2809) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (30-14-2809) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (30-14-2809) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "MT-stat",
+    "cite": "30-14-2808(1)(c)"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MT-stat",
+      "cite": "30-14-2808"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "MT-stat",
+      "cite": "30-14-2808",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "MT-stat",
+        "cite": "30-14-2808"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "Amended by SB 297 (Ch. 567, L. 2025); clocks re-read from the current code."
+  ]
+}

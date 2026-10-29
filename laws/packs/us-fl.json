@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-fl",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "FL",
+    "name": "Florida"
+  },
+  "law": {
+    "name": "Florida Digital Bill of Rights",
+    "citation": "Fla. Stat. 501.701-501.722",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2024-07-01",
+    "effective_date_source": "FL-law"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "FL-stat",
+      "title": "Florida Statutes chapter 501 (part V, 501.701-501.722)",
+      "url": "https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/0501.html",
+      "checked_on": "2026-10-29",
+      "sha256": "4ec9c4b26e75c9726c347158ef351d2eb6b6665a18f2cdd3a7887e8c9019f024",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "applicability"
+      ]
+    },
+    {
+      "id": "FL-law",
+      "title": "Laws of Florida ch. 2023-201",
+      "url": "https://laws.flrules.org/2023/201",
+      "checked_on": "2026-10-29",
+      "sha256": "50b3b97c2c1fd8eff005d5469c11fcd0f92e54193b0c84416a53ebbced79531c",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Narrow: a \"controller\" must, among other things, make over $1 billion in global gross annual revenue and meet one of three business-line tests (501.702). Most data brokers are not covered.",
+    "narrow": true,
+    "source": "FL-stat",
+    "cite": "501.702",
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "FL-stat",
+    "cite": "501.705"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "FL-stat",
+      "cite": "501.706"
+    },
+    "extension": {
+      "days": 15,
+      "day_type": "calendar",
+      "source": "FL-stat",
+      "cite": "501.706",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "FL-stat",
+        "cite": "501.707"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "Use the universal request unless the person has a documented reason to believe the controller meets 501.702."
+  ]
+}

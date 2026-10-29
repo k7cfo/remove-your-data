@@ -2,6 +2,8 @@
 
 Starting queue for public people-search and related opt-outs. URLs rot. Before filing: open the live privacy / opt-out page; load [`STATUS.md`](../STATUS.md) and [`dead-urls.md`](dead-urls.md). Skip dead rows without looping. Status is `verified` / `untested` / `defunct`. If a URL is dead, file anyway via the site's current privacy page only when STATUS is not `defunct`, then send a PR that fixes this file.
 
+Family members: file each opt-out as that person from their own inbox (household inbox, `SKILL.md` §1) so verify links and OTP codes land there.
+
 Do not pay a site to remove a listing. Registry membership is not a spray list — `python3 scripts/registry_pull.py` diffs hostnames; do not POST a generic form to every row.
 
 ## File first (indexed people-search)

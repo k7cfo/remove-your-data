@@ -1,0 +1,16 @@
+Subject: Consumer privacy request ($rights_label)
+
+To $controller:
+
+I am a resident of $state. To the extent your organization is subject to the $law_name ($citation), I make the following request under it:
+
+$rights_block
+$scope_block
+$timing_block
+$appeal_block
+Please confirm receipt, and please use any information I send to verify this request only for that purpose.
+
+$sender_block
+
+Name: $name
+Reply to: $reply_to

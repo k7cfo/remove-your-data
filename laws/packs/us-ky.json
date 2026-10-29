@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ky",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "KY",
+    "name": "Kentucky"
+  },
+  "law": {
+    "name": "Kentucky consumer data protection law",
+    "citation": "KRS 367.3611 et seq. (2024 Ky. Acts ch. 72)",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2026-01-01",
+    "effective_date_source": "KY-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "KY-act",
+      "title": "Kentucky 2024 Acts ch. 72 (HB 15)",
+      "url": "https://apps.legislature.ky.gov/law/acts/24RS/documents/0072.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "04bef675c9406be522efb8c5361e2346b11c441be05d865769b8ef6f82296a5f",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "effective_date",
+        "authorized_agent"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "KY-act",
+    "cite": "sec. 3"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "KY-act",
+      "cite": "sec. 3"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "KY-act",
+      "cite": "sec. 3",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "KY-act",
+        "cite": "sec. 3"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": [
+    "Act signed 2024-04-04."
+  ]
+}

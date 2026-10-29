@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-tx",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "TX",
+    "name": "Texas"
+  },
+  "law": {
+    "name": "Texas Data Privacy and Security Act",
+    "citation": "Tex. Bus. & Com. Code ch. 541",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2024-07-01",
+    "effective_date_source": "TX-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "TX-stat",
+      "title": "Texas Business and Commerce Code chapter 541",
+      "url": "https://tcss.legis.texas.gov/resources/BC/htm/BC.541.htm",
+      "checked_on": "2026-10-29",
+      "sha256": "1f56ef0a23bae698ba6234921a4dded70a2444059214093791dcc8d7797591be",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "authorized_agent"
+      ]
+    },
+    {
+      "id": "TX-act",
+      "title": "Texas HB 4 (88R) enrolled",
+      "url": "https://capitol.texas.gov/tlodocs/88R/billtext/pdf/HB00004F.pdf",
+      "checked_on": "2026-10-29",
+      "sha256": "069c098f10a13a8f3873bc6a1275474808800d2a509093471c9bfe6a8ca1cebd",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (541.055) covers opt-out only."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (541.055) covers opt-out only."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (541.055) covers opt-out only."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "Authorized agent provision (541.055) covers opt-out only."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": true,
+      "agent_note": "Statute lets an authorized agent submit opt-out requests only."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "TX-stat",
+    "cite": "541.051"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "TX-stat",
+      "cite": "541.052"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "TX-stat",
+      "cite": "541.052",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "TX-stat",
+        "cite": "541.053"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

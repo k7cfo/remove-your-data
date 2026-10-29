@@ -23,6 +23,9 @@ First public drop. Agent-first skill + localhost app.
 
 ## Unreleased
 
+- US state law packs (`laws/`): 20 state packs checked against primary sources on 2026-10-29 plus a universal voluntary request for every state and DC, with a schema and `ryd.py law-validate`. New verbs `attest-residency`, `law-plan`, `law-request`, `law-event` record residency, the selected pack and version, the exact request text and its hash, and open clocks from the controller's receipt date (business or calendar days, extensions, appeals). Stale, superseded, missing, not-yet-effective or narrow packs fall back to universal wording. Not legal advice. Part of #6.
+- Household inbox filing: the default for family members (spouse/partner, adult family, kids). Requests go out in the person's own name from their own inbox (their roster email) so verify/OTP links land there; letters are first person with no agent language, and state authorized-agent limits do not apply. No setup step: no consent record, consent date/method, or inbox-permission confirmation. Optional `ryd.py record-filer --mode` switches a person to the authorized-agent path (which keeps its per-state checks) or a guardian letter, or leaves a note.
+
 - **License:** relicensed to Apache-2.0 by the sole copyright holder, Nick Newsom (@k7cfo). Added `NOTICE` and `CITATION.cff`; forks are welcome, keep `NOTICE`.
 - **Chat-first reporting:** new `ryd.py recap` (read-only session-start summary with a ledger digest) and `ryd.py report` (`--md` default, `--text`, `--json`, `--image` PNG status card; Pillow optional, `RYD_NO_PIL=1` forces the built-in renderer). Output has vendor names, statuses, counts, and relative due dates only. Agents run `recap` first every session and present the card in chat; the dashboard is an optional view.
 

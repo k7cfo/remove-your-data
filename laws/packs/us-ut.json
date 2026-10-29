@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ut",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "UT",
+    "name": "Utah"
+  },
+  "law": {
+    "name": "Utah Consumer Privacy Act",
+    "citation": "Utah Code 13-61-101 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2023-12-31",
+    "effective_date_source": "UT-stat"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "UT-stat",
+      "title": "Utah Code 13-61-203 (version effective 2023-12-31)",
+      "url": "https://le.utah.gov/xcode/Title13/Chapter61/C13-61-S203_2022050420231231.html",
+      "checked_on": "2026-10-29",
+      "sha256": "91693c82891152278c3a5b26517dfa7053437ceea962df48726ede038eff5f00",
+      "supports": [
+        "response",
+        "extension",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "UT-201",
+      "title": "Utah Code 13-61-201 (version effective 2023-12-31)",
+      "url": "https://le.utah.gov/xcode/Title13/Chapter61/C13-61-S201_2022050420231231.html",
+      "checked_on": "2026-10-29",
+      "sha256": "be54751bb76bd6facd3c446aae831ea91f847d4e73e1bcf09297fa9c89d36a97",
+      "supports": [
+        "delete_scope"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source."
+    }
+  },
+  "deletion_scope": {
+    "value": "provided_by_consumer",
+    "source": "UT-201",
+    "cite": "13-61-201",
+    "note": "Deletion right covers personal data the consumer provided to the controller only."
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "UT-stat",
+      "cite": "13-61-203"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "UT-stat",
+      "cite": "13-61-203",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": false,
+      "note": "No statutory appeal process."
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

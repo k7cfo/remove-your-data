@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-ia",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "IA",
+    "name": "Iowa"
+  },
+  "law": {
+    "name": "Iowa consumer data protection law",
+    "citation": "Iowa Code chapter 715D",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2025-01-01",
+    "effective_date_source": "IA-act"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "IA-act",
+      "title": "Iowa SF 262 (90th GA) as enacted",
+      "url": "https://www.legis.iowa.gov/docs/publications/LGE/90/attachments/SF262.html",
+      "checked_on": "2026-10-29",
+      "sha256": "fab1aba2e0fdb6c6ef6203109fa8a74f5f612874734c04f8e7bb6baa6d8d6877",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope",
+        "effective_date",
+        "authorized_agent"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": false,
+      "agent_note": "No authorized-agent provision found in the full act text checked."
+    }
+  },
+  "deletion_scope": {
+    "value": "provided_by_consumer",
+    "source": "IA-act",
+    "cite": "715D.3",
+    "note": "Deletion right covers personal data provided by the consumer only. Ask for opt-out of sale for data obtained elsewhere; any wider deletion is voluntary."
+  },
+  "clocks": {
+    "response": {
+      "days": 90,
+      "day_type": "calendar",
+      "source": "IA-act",
+      "cite": "715D.4"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "IA-act",
+      "cite": "715D.4",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "IA-act",
+        "cite": "715D.4"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}

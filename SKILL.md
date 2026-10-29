@@ -53,7 +53,7 @@ If they already pay a removal service: do not buy more. Do not blindly re-file e
 - Do not start searching or filing until the **roster** has a primary person with residency.
 - If they live in California, run CA DROP before grinding public forms — **one DROP per person**, never a spouse on the same request.
 - Do not file for a roster person whose `consent_basis` is `unconfirmed`.
-- Do not impersonate. Consent is `self` (primary), `parent_of_minor`, or `authorized_agent` (they asked you to).
+- Do not impersonate. Consent is `self` (primary), `parent_of_minor`, or `authorized_agent` (they asked you to). Filing a family member's request in their own name from their own inbox (**household inbox**, §1) is the default for family; file with the person's knowledge.
 - Do not opt out other-state / other-country people who share the same name.
 - Do not collect anyone's email or site password. If a verify link lands in a mailbox you must not open, they click it.
 - Do not reuse one email across two roster people (Open Data USA: one address per person; Gmail plus-aliases collapse).
@@ -115,7 +115,7 @@ Primary person, required, this order:
 2. **Where they live** (country; US/Canada/Australia: state/province). California → DROP first, after intake — do not start DROP mid-questionnaire.
 3. Current city / postal. Street if they want address matching.
 4. Phones that show on listings (or “none”)
-5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address.
+5. A mailbox **they** can open (verify/OTP). Each family member needs their **own** address; for family, use their own inbox (household inbox, below).
 6. Cadence (default 7 days if they skip)
 7. Anonymity: `dedicated` / `personal` / `max`
 8. Tools this host already has (skip if you already listed them in §0)
@@ -131,10 +131,20 @@ Family: add as **another `person` row**, not extra identifiers on the primary. S
 | --- | --- | --- |
 | `self` | Primary subject | yes |
 | `parent_of_minor` | User is the parent; child is a minor | yes |
-| `authorized_agent` | That adult asked the user to file | yes |
+| `authorized_agent` | Adult family member (or another adult) the user files for; family defaults to household inbox | yes |
 | `unconfirmed` | Listed but not authorized | **no** |
 
-Family members also get their own 1:1 intake (name, consent, own verify email) — still one question per turn.
+Family members get a short 1:1 intake: name and their own email, one question per turn. Set `relationship` and `consent_basis` from what the user already said (spouse/partner/adult family → `authorized_agent`, their kid → `parent_of_minor`); do not stop to collect a consent date, method, or inbox confirmation.
+
+### Household inbox filing (recommended for family)
+
+Most households file for a spouse/partner, an adult family member, or their kids. The recommended default is **household inbox**: the helper files the family member's own request, in that person's name, from that person's own email inbox. Broker opt-outs and privacy requests send verify links and OTP codes to the address on the request, so they land in an inbox the helper can already open and the flow completes without forwarding. It is the person's own request, so it is not authorized-agent filing and state authorized-agent limits do not apply to it.
+
+Nothing to set up: `law-plan` / `law-request` file a family member's request this way by default (`filing: household inbox`), using the email on their roster row as the reply address.
+
+- Use the person's own address for every filing about them (brokers and state-law requests): that address is the listing's `email_used`. Do not reuse it for another person.
+- Letters are written in the person's first person, with no agent or helper language.
+- Alternative: the authorized-agent path (`ryd.py record-filer --mode authorized-agent`, or `--mode guardian` for a minor's guardian letter). It keeps each state's authorized-agent limits and `unverified` warnings, and the letter says an agent is sending it. Roster adults with relationship `other` default to it. `record-filer` is optional; use it only to switch modes or leave a note.
 
 On every later run:
 
@@ -152,7 +162,7 @@ Pick the primary legal track from residency. Always still do public people-searc
 | Residency | First move | Clock |
 | --- | --- | --- |
 | California | [CA DROP](https://privacy.ca.gov/drop/) then public opt-outs | Brokers process DROP at least every 45 days; status may take 90 days. CCPA deletion otherwise 45 days (+45). |
-| Other US with a consumer privacy law (CO, CT, VA, TX, OR, …) | State deletion / opt-out-of-sale request + public opt-outs. Check that state's portal or AG privacy page. TX / OR / VT also have data-broker **registries** (not a one-shot DROP). | Usually 45 days. Confirm on the state site. |
+| Other US state or DC | `law-plan` → `law-request` (state pack if one is in effect and residency is attested; else the universal voluntary request) + public opt-outs. TX / OR / VT also have data-broker **registries** (not a one-shot DROP). | From the pack, counted from the controller's **receipt** date. No pack → no legal deadline. |
 | Vermont | Registry lookup + individual broker requests | Per broker / VT law |
 | EU / EEA | GDPR Art. 17 erasure to each controller | 1 month, extendable to 3 months with notice |
 | UK | UK GDPR erasure | 1 month, extendable |
@@ -169,6 +179,16 @@ California extras (do these first, in order):
 3. Recheck DROP status at [consumer.drop.privacy.ca.gov/dropstatus](https://consumer.drop.privacy.ca.gov/dropstatus).
 
 DROP does **not** delete first-party accounts the person created themselves, exempted data, or some publicly available records. People-search pages can still rank. File them.
+
+Other US states and DC (not legal advice; the ledger records what was assumed):
+
+0. Family member: household inbox is the default (§1); nothing to record. Agent restrictions apply only on the agent path.
+1. Record residency once: `python3 scripts/ryd.py attest-residency --workspace "$WORKSPACE" --person-id N --region CO --confirm`. Ask the person; never infer it from a listing.
+2. Plan: `ryd.py law-plan --workspace "$WORKSPACE" --person-id N [--rights delete,opt_out]`. It names the pack (`laws/packs/us-xx.json`, 20 states as of 2026-10-29) or `us-universal` and why (no pack, not yet in effect, stale, superseded, no attestation, narrow law).
+3. Render and record: `ryd.py law-request --workspace "$WORKSPACE" --person-id N --controller "Broker" [--out exports/req.txt]`. The exact text, its sha256, the pack version and the assumptions are stored. Send it yourself; it does not send.
+4. When the controller confirms receipt: `ryd.py law-event --workspace "$WORKSPACE" --request-id R --event received --date YYYY-MM-DD`. Only then do statutory clocks open. Also `--event extended` (their extension notice), `--event appeal` (render an appeal where the law has one), `--event closed`.
+
+Rules the verbs enforce: wording says "To the extent your organization is subject to …" and never claims coverage; Florida's law reaches few companies, so it uses universal wording unless you pass `--controller-covered`; Iowa and Utah deletion covers only data the person provided, so the letter also asks voluntarily for the rest; authorized agents are blocked for rights the pack says they cannot use (most states: opt-out only); no appeal deadline is ever set for the consumer ("reasonable period" stays text). California residents: DROP first, then `law-request` for businesses DROP does not reach.
 
 ## 3. Workspace and legal log
 
@@ -234,6 +254,8 @@ Prefer this order:
 3. **Consumer fallback inbox** (Gmail, Yahoo, or Outlook) that is **not** their daily-driver. Required because Spokeo and Open Data USA reject many custom / agent domains, and Open Data USA normalizes Gmail `+` aliases. Keep one real Gmail/Yahoo/Outlook for those sites only.
 
 Store which mailbox was used per listing (`email_used`). Never reuse a one-per-person address across two people.
+
+Family members: file from **their own inbox** (household inbox, §1). Verify links and OTP codes then arrive where the helper can read them, and the request is in the person's own name. Otherwise use a dedicated inbox for that person, or coach them to click.
 
 When a verify email arrives: fetch it, extract the link or code, complete the flow, log `email_event`, recheck the public URL the same day.
 
@@ -442,7 +464,7 @@ Clock kinds:
 | --- | --- | --- |
 | `verify_email` | after filing | every 4–12h until clicked or 7d |
 | `site_window` | after verify | site-stated (else 7d) |
-| `legal_response` | GDPR/CCPA/letter | 30d or 45d from send; warn at 7d before |
+| `legal_response` | GDPR/CCPA/letter; `law-event received` for state packs | 30d or 45d from send; state packs: pack days from receipt (business days where the pack says so); warn at 7d before |
 | `drop_45d` | after DROP submit | every 45d |
 | `drop_90d` | after DROP submit | once at 90d |
 | `rescan` | always | `cadence_hours` |

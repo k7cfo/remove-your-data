@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "pack_id": "us-va",
+  "pack_version": "2026.10.29",
+  "status": "current",
+  "supersedes": null,
+  "superseded_by": null,
+  "jurisdiction": {
+    "country": "US",
+    "region": "VA",
+    "name": "Virginia"
+  },
+  "law": {
+    "name": "Virginia Consumer Data Protection Act",
+    "citation": "Va. Code 59.1-575 et seq.",
+    "law_version": "as read 2026-10-29",
+    "effective_date": "2023-01-01",
+    "effective_date_source": "VA-bill"
+  },
+  "verified_on": "2026-10-29",
+  "review_by": "2027-04-29",
+  "reviewer": {
+    "handle": "k7cfo",
+    "role": "maintainer source check",
+    "legal_review": false
+  },
+  "changelog": [
+    {
+      "version": "2026.10.29",
+      "date": "2026-10-29",
+      "change": "Initial pack from issue #6 matrix, re-read against primary sources."
+    }
+  ],
+  "sources": [
+    {
+      "id": "VA-stat",
+      "title": "Code of Virginia 59.1-577",
+      "url": "https://law.lis.virginia.gov/vacode/title59.1/chapter53/section59.1-577/",
+      "checked_on": "2026-10-29",
+      "sha256": "f078c8971a1ba719930a9347b3133355977c1306f25bd3e2aa1a583d1904b5a8",
+      "supports": [
+        "response",
+        "extension",
+        "appeal",
+        "delete_scope"
+      ]
+    },
+    {
+      "id": "VA-bill",
+      "title": "Virginia LIS bill tracking, HB 2307 (2021 Sp. Sess. I), Chapter 35",
+      "url": "https://legacylis.virginia.gov/cgi-bin/legp604.exe?212+sum+HB2307",
+      "checked_on": "2026-10-29",
+      "sha256": "ef32650b897921cc868cf3b18c4c39addc519389d5f6b5c54b4024796b5e5ca1",
+      "supports": [
+        "effective_date"
+      ]
+    }
+  ],
+  "applicability": {
+    "summary": "Applies only to controllers that meet the statute's thresholds and are not exempt. This tool does not decide whether a controller is covered.",
+    "narrow": false,
+    "attestations_required": [
+      "residency"
+    ]
+  },
+  "route": null,
+  "rights": {
+    "access": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source. No provision in 59.1-577."
+    },
+    "correct": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source. No provision in 59.1-577."
+    },
+    "delete": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source. No provision in 59.1-577."
+    },
+    "portability": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source. No provision in 59.1-577."
+    },
+    "opt_out": {
+      "available": true,
+      "authorized_agent": null,
+      "agent_note": "unverified: authorized-agent rule not confirmed from the primary source. No provision in 59.1-577."
+    }
+  },
+  "deletion_scope": {
+    "value": "all_personal_data",
+    "source": "VA-stat",
+    "cite": "59.1-577"
+  },
+  "clocks": {
+    "response": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "VA-stat",
+      "cite": "59.1-577"
+    },
+    "extension": {
+      "days": 45,
+      "day_type": "calendar",
+      "source": "VA-stat",
+      "cite": "59.1-577",
+      "notice_within_initial_period": true
+    },
+    "acknowledgement": null,
+    "opt_out": null,
+    "appeal": {
+      "available": true,
+      "response": {
+        "days": 60,
+        "day_type": "calendar",
+        "source": "VA-stat",
+        "cite": "59.1-577"
+      },
+      "consumer_filing_window": "reasonable period (no fixed number; do not compute a deadline)"
+    }
+  },
+  "templates": {
+    "request": "us-state-request-v1",
+    "appeal": "us-state-appeal-v1"
+  },
+  "notes": []
+}
