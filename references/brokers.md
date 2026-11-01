@@ -19,7 +19,7 @@ Do not pay a site to remove a listing. Registry membership is not a spray list �
 | Radaris | https://radaris.com/control/privacy | Confirm email required. Recheck name-index and regional mirrors. |
 | Open Data USA | origin parked | **defunct.** No MX for `optout@`. Cancel the letter. Leftover SERP last-step. |
 | PeopleFinders | https://www.peoplefinders.com/opt-out | Public form may be Turnstile-blocked; `privacy@` has bounced. Log and move. |
-| USPhoneBook | https://www.usphonebook.com/opt-out | Reverse-phone. |
+| USPhoneBook | https://www.usphonebook.com/opt-out | Reverse-phone. Profile URLs 403 from datacenters; verify drops on every name-index `?page=N`. A processed opt-out can also clear FastBackgroundCheck within ~3 days; recheck FBC first. |
 | MyLife | https://www.mylife.com/privacyrequest | Slow. Jotforms can disappear; do not send ID alone. A 410 can still SERP; dropped pages can reappear in Bing/Yahoo. Atlassian support can confirm account + published-profile deletion and quote 3–5 business days for a full purge; origin can go 404. Watch 24–72h. Do not file SERP while leftover origins are still live. |
 | Nuwber | https://nuwber.com/optout | |
 | ThatsThem | https://thatsthem.com/optout | |
