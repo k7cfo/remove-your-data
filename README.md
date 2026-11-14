@@ -14,10 +14,10 @@ Original repo: https://github.com/k7cfo/remove-your-data by Nick Newsom (@k7cfo)
 An agent skill that removes a person's listings from people-search sites and data brokers without paying a deletion service. It files first-party opt-outs, routes California residents through DROP, keeps a local SQLite log of every request, and reports progress in chat. This is not legal advice.
 
 <p align="center">
-  <img src="docs/assets/infographic.png" width="540" alt="Infographic: one household's results after 79 days using this project. 12 data brokers confirmed gone, including Whitepages, MyLife, Spokeo, Intelius and TruthFinder, 20+ opt-outs and legal requests filed, 1,300+ checks logged, and $0 paid to removal services. QR codes link to the Grok Bot template and this repo.">
+  <img src="docs/assets/infographic.png" width="540" alt="Infographic: my actual results after 79 days using this project. 12 data brokers confirmed gone, including Whitepages, MyLife, Spokeo, Intelius and TruthFinder, 20+ opt-outs and legal requests filed, 1,300+ checks logged, and $0 paid to removal services. QR codes link to the Grok Bot template and this repo.">
 </p>
 
-*One household's results using this project (as of Nov 2026). The story behind this: [thread on X](https://x.com/Ask_Nick/status/2121282617408700478).*
+*My actual results (as of Nov 2026). The story behind this: [thread on X](https://x.com/Ask_Nick/status/2121282617408700478).*
 
 ## Quick start
 
