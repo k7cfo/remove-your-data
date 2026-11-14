@@ -68,7 +68,6 @@ Legend: ✅ yes, ◐ partial, ❌ no, ? not stated by the vendor.
 | Recurring re-scans | ◐¹³ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Works inside the AI you already use (Grok Bot, Claude, Codex, Cursor) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Brokers covered (advertised) | any site the agent can reach¹⁴ | not stated | 420+ | 375+ to 620+ | highest-traffic sites | 425+ | 597 (people search) | 200+ |
-| Hands-off, with human support | ❌ | ✅ | ✅ | ✅¹⁵ | ✅ | ✅ | ✅ | ? |
 
 Where paid services win: you do nothing after signup, a person answers when something breaks, and the broker lists are large and maintained for you. Where this project differs: it is free, you can read the code and every request, the log stays on your machine, and it can work through the replies using your own inbox.
 
@@ -88,7 +87,6 @@ Where paid services win: you do nothing after signup, a person answers when some
 12. Optional and watch-only. Needs a free SerpApi key. See the next section.
 13. Re-scans run when you run the agent, or on a schedule if your host has a scheduler.
 14. This project does not keep a fixed broker count. It covers what the agent can find and file, plus the broker playbook in [`references/brokers.md`](references/brokers.md). Advertised counts from paid services are not directly comparable to that.
-15. Optery's lowest paid plan is fully automated with no human agent; human agents start on its higher plans.
 
 Price sources, all checked Nov 14, 2026: [DeleteMe](https://help.joindeleteme.com/hc/en-us/articles/26605377008531-How-much-does-a-DeleteMe-Subscription-cost), [Incogni](https://incogni.com/pricing), [Optery](https://www.optery.com/pricing/), [Kanary](https://www.kanary.com/blog/2026-product-brief), [Aura](https://www.aura.com/pricing), [Privacy Bee](https://privacybee.com/pricing/), [EasyOptOuts](https://easyoptouts.com/pricing). Prices and plans change; check the vendor before you buy. For independent results on paid services, see [Consumer Reports' 2024 study](https://www.consumerreports.org/electronics/personal-information/services-that-delete-data-from-people-search-sites-review-a2705843415/).
 
