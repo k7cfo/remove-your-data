@@ -58,7 +58,7 @@ Legend: ✅ yes, ◐ partial, ❌ no, ? not stated by the vendor.
 | Your data stays on your own machine (local SQLite log) | ✅⁵ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Files from your own email and handles the back-and-forth | ✅ | ❌⁶ | ❌⁶ | ❌⁶ | ?⁶ | ❌⁶ | ❌⁶ | ◐⁶ |
 | State privacy-law requests with tracked legal deadlines | ✅ | ? | ◐⁷ | ◐⁷ | ◐⁷ | ? | ◐⁷ | ? |
-| California DROP | ◐⁸ | ❌ | ? | ❌ | ? | ? | ? | ? |
+| California DROP | ✅⁸ | ❌ | ? | ❌ | ? | ? | ? | ? |
 | Household or family members | ✅ free | ◐⁹ | ◐⁹ | ◐⁹ | ◐⁹ | ◐⁹ | ◐⁹ | ❌ |
 | Follow-up on stale requests | ✅ | ✅ | ✅ | ◐ | ✅ | ✅ | ✅ | ? |
 | Phone-call escalation | ✅ on hosts that can call¹⁰ | ? | ? | ? | ? | ? | ? | ? |
@@ -79,7 +79,7 @@ Where paid services win: you do nothing after signup, a person answers when some
 5. The agent host and the AI model you use will see what you tell the agent. The SQLite log and evidence files stay on your disk.
 6. Per their own terms and help pages, DeleteMe, Incogni, Optery, Aura, and Privacy Bee act as your authorized agent and use their own or a proxy mailbox (Optery says it always uses disposable addresses and never your email). Brokers can still email you to confirm. Kanary does not say whose mailbox it uses. EasyOptOuts puts your contact email on its requests, is fully automated, and does not say how it handles replies.
 7. These services send state-law or regulator-backed requests as your agent (Optery lists 16 states; Kanary lists regulator and attorney general escalation). None of them says it shows you statutory deadline clocks.
-8. The agent walks you through DROP and logs it. You complete the California identity check yourself. DeleteMe and Optery describe DROP as something to use alongside their service.
+8. The agent walks you through DROP, fills in what it can, and logs the result. One manual step: California requires you to complete its identity check yourself. DeleteMe and Optery describe DROP as something to use alongside their service.
 9. Paid family or multi-person plans cost extra. Examples: DeleteMe 2 people $229/yr, Incogni Family $191.88/yr, Kanary 50% off each added family member.
 10. This depends on the host. The repo itself places no calls; a host such as Grok Bot can, if you tell it to.
 11. Custom removals usually need a higher tier or have a yearly limit (Incogni Unlimited, Optery Ultimate, Kanary Advanced, Privacy Bee Pro, DeleteMe's yearly custom allowance).
