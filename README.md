@@ -21,17 +21,15 @@ An agent skill that removes a person's listings from people-search sites and dat
 
 ## Quick start
 
-Pick your agent. Every path ends the same way: say *remove my data from people-search sites.* The agent asks where you live first (California: [DROP](https://privacy.ca.gov/drop/) first), files the opt-outs, and keeps the log.
+**Grok Bot (easiest):** [**Get the Remove My Data bot**](https://x.ai/bot/zDwvcgFqUS8825GmUGg7F). One click and it's ready. It walks you through everything.
 
-- **Grok Bot:** open the [template](https://x.ai/bot/zDwvcgFqUS8825GmUGg7F), then say the line above.
-- **Claude Code:** `git clone https://github.com/k7cfo/remove-your-data && cd remove-your-data && claude`, then say the line above. `CLAUDE.md` points at `AGENTS.md`.
-- **Codex:** `git clone https://github.com/k7cfo/remove-your-data && cd remove-your-data && codex`, then say the line above. Codex reads `AGENTS.md`.
-- **Cursor:** clone the repo, open the folder in Cursor, start an agent chat, and say the line above.
-- **Any other agent** (Pi, OMP, Hermes, OpenClaw, or anything that can clone a repo and read `AGENTS.md` / `SKILL.md`): paste the repo URL, then say the line above.
+**Any other AI agent:** paste this link into Claude Code, Codex, Cursor, Hermes, OpenClaw, or any agent that can read a repo, then say *remove my data from people-search sites.*
 
 ```text
 https://github.com/k7cfo/remove-your-data
 ```
+
+The agent asks where you live first (California residents start with [DROP](https://privacy.ca.gov/drop/)), files the opt-outs, and keeps the log.
 
 ## What the agent does for you
 
