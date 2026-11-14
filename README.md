@@ -4,9 +4,11 @@ Agent skill: remove a person's listings from people-search sites and data broker
 
 This is not legal advice.
 
-![Example results: 21 data-broker listings found, 14 removed](docs/progress-infographic.png)
+<p align="center">
+  <img src="docs/assets/infographic.png" width="540" alt="Infographic: one household's results after 79 days using this project. 12 data brokers confirmed gone, including Whitepages, MyLife, Spokeo, Intelius and TruthFinder, 20+ opt-outs and legal requests filed, 1,300+ checks logged, and $0 paid to removal services. QR codes link to the Grok Bot template and this repo.">
+</p>
 
-*Example: one household's results using this project (as of Oct 2026).*
+*One household's results using this project (as of Nov 2026).*
 
 ## Quickstart
 
