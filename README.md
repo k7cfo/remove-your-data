@@ -53,7 +53,6 @@ Legend: ✅ yes, ◐ partial, ❌ no, ? not stated by the vendor.
 | | remove-your-data | [DeleteMe](https://joindeleteme.com/pricing/) | [Incogni](https://incogni.com/pricing) | [Optery](https://www.optery.com/pricing/) | [Kanary](https://www.kanary.com/pricing-individual) | [Aura](https://www.aura.com/pricing)¹ | [Privacy Bee](https://privacybee.com/pricing/) | [EasyOptOuts](https://easyoptouts.com/pricing) |
 |---|---|---|---|---|---|---|---|---|
 | Cheapest annual plan | **$0** | $129 | $95.88 | $39 | $250 | $144 | about $8/mo, billed yearly² | $19.99 |
-| Per month, billed annually | **$0** | $10.75 | $7.99 | $3.25 | $20.83 | $12 | about $8 | $1.67 |
 | Monthly plan | n/a | no³ | $15.98 | $3.99 | $25 | $15 | not shown | none listed |
 | Open source, you can read every request it sends | ✅ | ❌⁴ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Your data stays on your own machine (local SQLite log) | ✅⁵ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
