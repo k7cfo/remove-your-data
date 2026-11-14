@@ -10,9 +10,9 @@
 Original repo: https://github.com/k7cfo/remove-your-data by Nick Newsom (@k7cfo). If you are reading a copy or a fork, the original is the place for fixes and updates.
 
 <p align="center">
-  <a href="https://github.com/k7cfo/remove-your-data/blob/master/docs/assets/explainer.mp4"><img src="docs/assets/explainer-preview.gif" width="640" alt="30 second explainer: paste one link into your AI agent and say remove my data. It files the free opt-outs, answers the verification emails, and chases stale requests. Click to watch with sound."></a>
+  <a href="https://k7cfo.github.io/remove-your-data/watch.html"><img src="docs/assets/explainer-preview.gif" width="640" alt="30 second explainer: paste one link into your AI agent and say remove my data. It files the free opt-outs, answers the verification emails, and chases stale requests. Click to watch with sound."></a>
   <br>
-  <sub><a href="https://github.com/k7cfo/remove-your-data/blob/master/docs/assets/explainer.mp4">Watch the 30 second explainer (with sound)</a></sub>
+  <sub><a href="https://k7cfo.github.io/remove-your-data/watch.html">Watch the 30 second explainer (with sound)</a></sub>
 </p>
 
 An agent skill that removes a person's listings from people-search sites and data brokers without paying a deletion service. It files first-party opt-outs, routes California residents through DROP, keeps a local SQLite log of every request, and reports progress in chat. This is not legal advice.
